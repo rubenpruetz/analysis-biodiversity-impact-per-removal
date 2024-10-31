@@ -24,7 +24,7 @@ ar6_file = 'AR6_Scenarios_Database_World_v1.1.csv'
 ar6_db = pd.read_csv(path_ar6_data + ar6_file)
 
 filepath_uea = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km/'
-filepath_ipl = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/ipl_maps/'
+filepath_ipl = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/ipl_maps/01_Data/'
 filepath_globiom = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps1/'
 filepath_aim = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps/'
 
@@ -35,7 +35,7 @@ lookup_names = pd.read_csv(filepath_globiom + 'lookup_table_ssp-rcp_names.csv')
 removal_df = pd.read_csv(filepath_globiom + 'affor_emis.csv')
 
 # %% choose model to run the script with
-model = 'AIM'  # options: 'GLOBIOM' or 'AIM'
+model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM'
 
 if model == 'GLOBIOM':
     filepath = filepath_globiom
@@ -48,7 +48,7 @@ elif model == 'AIM':
 
 # land-per-removal curve calculation
 # %% STEP1: calculate removal per scenario in for 2020-2100
-scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45', 
+scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
              'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
              'SSP2-60', 'SSP3-Baseline', 'SSP3-34', 'SSP3-45', 'SSP3-60']
 
@@ -424,7 +424,7 @@ for ssp in ssps:
 
 # %% calculate country burden for refugia
 # read the administrative boundary shapefile data
-sf_path = '/Users/rubenprutz/Documents/PhD/Primary workspace/Studies/Biodiversity/WAB/'
+sf_path = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/wab/'
 admin_sf = shapefile.Reader(sf_path + 'world-administrative-boundaries.shp')
 
 # use admin_bound_calculator for all SSPs for AR
