@@ -9,6 +9,7 @@ import numpy.matlib
 import seaborn as sns
 from rasterio.mask import mask
 from shapely.geometry import shape, mapping
+from pathlib import Path
 
 # function to resample geotiffs
 
@@ -48,7 +49,7 @@ def binary_refugia_converter(input_tif,  # input tif (string)
                              filepath,  # string + /
                              threshold,  # minimum refugia value (integer)
                              output_name):  # specify output name (string)
-    with rs.open(filepath+input_tif) as src:
+    with rs.open(filepath / input_tif) as src:
         data = src.read()  # Read the GeoTIFF
         profile = src.profile  # Get metadata of GeoTiff
 
@@ -56,7 +57,7 @@ def binary_refugia_converter(input_tif,  # input tif (string)
                            np.where(data < threshold, 0, data))
 
     profile.update(dtype=rs.float32)  # update metadata
-    with rs.open(filepath + output_name, 'w', **profile) as dst:  # create and write output file
+    with rs.open(filepath / output_name, 'w', **profile) as dst:  # create and write output file
         dst.write(output_data.astype(profile['dtype']))
 
 # function to convert nc to geotiff
@@ -67,16 +68,16 @@ def nc_geotiff_converter(input_nc,  # string
                          variable,  # string
                          time_band,  # options: 0-9 -> 2010-2100 (10y steps)
                          output_name):  # output tiff (string)
-    nc_file = rioxarray.open_rasterio(filepath + input_nc, decode_times=False)
+    nc_file = rioxarray.open_rasterio(filepath / input_nc, decode_times=False)
     data_array = nc_file[variable][time_band]
-    data_array.rio.to_raster(filepath + output_name, driver='GTiff')
+    data_array.rio.to_raster(filepath / output_name, driver='GTiff')
     # update meta data with rasterio to avoid later conflicts
-    with rs.open(filepath + output_name) as src:  # specify file name
+    with rs.open(filepath / output_name) as src:  # specify file name
         data = src.read(1)  # assuming single band image
         profile = src.profile
         profile.update(dtype=rs.float32)
 
-    with rs.open(filepath + output_name, 'w', **profile) as dst:
+    with rs.open(filepath / output_name, 'w', **profile) as dst:
         dst.write(data, 1)
 
 
@@ -89,7 +90,7 @@ def land_area_calculation(filepath, input_name, output_name=None):
     Adapted from:
     https://gis.stackexchange.com/questions/317392/determine-area-of-cell-in-raster-qgis
     """
-    with rs.open(filepath + input_name) as src:
+    with rs.open(filepath / input_name) as src:
         input_raster = src.read(1)
         input_raster = np.nan_to_num(input_raster, nan=-3.40282e+38)
         profile = src.profile
@@ -122,7 +123,7 @@ def land_area_calculation(filepath, input_name, output_name=None):
     areagrid[input_raster <= 0] = np.nan
 
     if output_name:
-        with rs.open(filepath + output_name, 'w', **profile) as dst:
+        with rs.open(filepath / output_name, 'w', **profile) as dst:
             dst.write(areagrid, 1)
     else:
         return areagrid

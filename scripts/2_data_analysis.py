@@ -17,33 +17,38 @@ from rasterio.mask import mask
 import shapefile
 import shapely.geometry as sgeom
 from shapely.geometry import shape, mapping
+from pathlib import Path
 plt.rcParams.update({'figure.dpi': 600})
 
-path_ar6_data = '/Users/rubenprutz/Documents/phd/datasets/'
+path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 ar6_file = 'AR6_Scenarios_Database_World_v1.1.csv'
-ar6_db = pd.read_csv(path_ar6_data + ar6_file)
+ar6_db = pd.read_csv(path_ar6_data / ar6_file)
 
-filepath_uea = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km/'
-filepath_ipl = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/ipl_maps/01_Data/'
-filepath_globiom = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps1/'
-filepath_aim = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps/'
+path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
+path_ipl = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ipl_maps/01_Data')
+path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
+path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
+path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 
-filepath_all = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/'
+path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 file_all = 'lookup_table_cdr_files_all_models.csv'
 
-lookup_names = pd.read_csv(filepath_globiom + 'lookup_table_ssp-rcp_names.csv')
-removal_df = pd.read_csv(filepath_globiom + 'affor_emis.csv')
+lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 
 # %% choose model to run the script with
-model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM'
+model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
-    filepath = filepath_globiom
+    path = path_globiom
     model_setup = 'MESSAGE-GLOBIOM 1.0'
     removal_lvl = 4
 elif model == 'AIM':
-    filepath = filepath_aim
+    path = path_aim
     model_setup = 'AIM/CGE 2.0'
+    removal_lvl = 2.5
+elif model == 'IMAGE':
+    path = path_image
+    model_setup = 'IMAGE 3.0.1'
     removal_lvl = 2.5
 
 # land-per-removal curve calculation
@@ -56,38 +61,19 @@ ar6_db = ar6_db.loc[ar6_db['Model'].isin([model_setup]) & ar6_db['Scenario'].isi
 numeric_cols = [str(year) for year in range(2020, 2110, 10)]
 cdr = ar6_db[['Scenario', 'Variable'] + numeric_cols].copy()
 cdr_array = ['Carbon Sequestration|CCS|Biomass',
-             'Carbon Sequestration|Land Use|Afforestation']
+             'Carbon Sequestration|Land Use']
 cdr = cdr[cdr['Variable'].isin(cdr_array)]
 cdr[numeric_cols] = cdr[numeric_cols].abs()
 cdr = cdr.melt(id_vars=['Scenario', 'Variable'], var_name='Year', value_name='Removal')
 cdr['Removal'] = cdr['Removal'] * 0.001  # Mt to Gt
 cdr['Year'] = pd.to_numeric(cdr['Year'])
 
-ar_removal = cdr[cdr['Variable'] == 'Carbon Sequestration|Land Use|Afforestation']
+ar_removal = cdr[cdr['Variable'] == 'Carbon Sequestration|Land Use']
 ar_removal['Variable'] = 'AR removal'
-
-# use AR removal data directly from GLOBIOM/G4M run
-if model == 'GLOBIOM':
-    lookup_table = lookup_names.set_index('scenario')['rcp'].to_dict()
-    removal_df['ssp'] = removal_df['scenario'].str.split('_').str[0]
-    removal_df = removal_df.groupby(['scenario', 'ssp']).sum(numeric_only=True)
-    removal_df = removal_df.abs()
-    removal_df.reset_index(inplace=True)
-    removal_df['scenario'] = removal_df['scenario'].replace(lookup_table)
-    removal_df.dropna(inplace=True)
-    removal_df['ssp-rcp'] = removal_df['ssp'] + '-' + removal_df['scenario']
-    removal_df = removal_df[['ssp-rcp'] + numeric_cols].copy()
-    ar_removal = pd.melt(removal_df,
-                         id_vars=['ssp-rcp'],
-                         var_name='Year', value_name='Removal')
-    ar_removal.rename(columns={'ssp-rcp': 'Scenario'}, inplace=True)
-    ar_removal['Year'] = ar_removal['Year'].apply(pd.to_numeric)
-    ar_removal['Variable'] = 'AR removal'
-    ar_removal['Removal'] = ar_removal['Removal'] * 0.001  # Mt to Gt
 
 # %% STEP2: calculate afforestation land per scenario in for 2020-2100
 # filter afforestation related files from lookup table
-landfile_lookup = pd.read_csv(filepath_all + file_all)
+landfile_lookup = pd.read_csv(path_all / file_all)
 ar_lookup = landfile_lookup[landfile_lookup['mitigation_option'] == 'Afforestation']
 ar_land = pd.DataFrame(columns=['Scenario', 'Year', 'Land'])
 
@@ -96,7 +82,7 @@ for index, row in ar_lookup.iterrows():  # calculate afforestation land per scen
     scenario = row['scenario']
     year = row['year']
 
-    land_use = rioxarray.open_rasterio(filepath + model + '_' + input_nc,
+    land_use = rioxarray.open_rasterio(path / f'{model}_{input_nc}',
                                        masked=True)
     tot_cdr_area = pos_val_summer(land_use, squeeze=True)
 
@@ -131,7 +117,7 @@ for index, row in be_lookup.iterrows():  # calculate bioenergy land per scenario
     scenario = row['scenario']
     year = row['year']
 
-    land_use = rioxarray.open_rasterio(filepath + model + '_' + input_nc,
+    land_use = rioxarray.open_rasterio(path / f'{model}_{input_nc}',
                                        masked=True)
     tot_cdr_area = pos_val_summer(land_use, squeeze=True)
 
@@ -205,8 +191,8 @@ for removal_step in removal_steps:
         upper_tiff = f'{model}_Afforestation_{ssp}-{rcp}_{yr_up}.tif'
         output_name = f'{model}_Afforestation_{ssp}-{rcp}_{removal_step}GtCO2.tif'
 
-        with rs.open(filepath + lower_tiff) as src_low:
-            with rs.open(filepath + upper_tiff) as src_up:
+        with rs.open(path / lower_tiff) as src_low:
+            with rs.open(path / upper_tiff) as src_up:
                 # Read raster data and geospatial information
                 lower_tiff = src_low.read(1)
                 upper_tiff = src_up.read(1)
@@ -224,7 +210,7 @@ for removal_step in removal_steps:
                 profile_updated = profile_lower.copy()
                 profile_updated.update(dtype=rs.float32)
 
-                with rs.open(filepath + output_name, "w", **profile_updated) as dst:
+                with rs.open(path / output_name, "w", **profile_updated) as dst:
                     dst.write(tiff_target.astype(rs.float32), 1)
 
 # %% impact-per-removal analysis (BECCS)
@@ -284,8 +270,8 @@ for removal_step in removal_steps:
                                            (beccs_land['Scenario'] == f'{ssp}-{rcp}'),
                                            'Fraction'].iloc[0])
 
-        with rs.open(filepath + lower_tiff) as src_low:
-            with rs.open(filepath + upper_tiff) as src_up:
+        with rs.open(path / lower_tiff) as src_low:
+            with rs.open(path / upper_tiff) as src_up:
                 # Read raster data and geospatial information
                 lower_tiff = src_low.read(1)
                 upper_tiff = src_up.read(1)
@@ -307,7 +293,7 @@ for removal_step in removal_steps:
                 profile_updated = profile_lower.copy()
                 profile_updated.update(dtype=rs.float32)
 
-                with rs.open(filepath + output_name, "w", **profile_updated) as dst:
+                with rs.open(path / output_name, "w", **profile_updated) as dst:
                     dst.write(tiff_target.astype(rs.float32), 1)
 
 # %% maps of land impact of CDR across SSP1-3 for a certain warming level
@@ -322,20 +308,20 @@ for ssp in ssps:
         ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_lvl}GtCO2.tif'
         be_45 = f'{model}_BECCS_{ssp}-45_{removal_lvl}GtCO2.tif'
 
-        ar_34 = rioxarray.open_rasterio(filepath + ar_34, masked=True)
-        be_34 = rioxarray.open_rasterio(filepath + be_34, masked=True)
+        ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
+        be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
 
-        ar_45 = rioxarray.open_rasterio(filepath + ar_45, masked=True)
-        be_45 = rioxarray.open_rasterio(filepath + be_45, masked=True)
+        ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
+        be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
 
         ar = (ar_34 + ar_45) / 2  # average between the two available rcps
         be = (be_34 + be_45) / 2  # average between the two available rcps
 
-        refugia = rioxarray.open_rasterio(filepath_uea + 'bio1.5_bin.tif', masked=True)  # specify warming level
+        refugia = rioxarray.open_rasterio(path_uea / 'bio1.5_bin.tif', masked=True)  # specify warming level
         bin_land = refugia.where(refugia.isnull(), 1)  # all=1 if not nodata
-        bin_land.rio.to_raster(filepath_uea + 'bin_land.tif', driver='GTiff')
-        land_area_calculation(filepath_uea, 'bin_land.tif', 'bin_land_km2.tif')
-        max_land_area = rioxarray.open_rasterio(filepath_uea + 'bin_land_km2.tif',
+        bin_land.rio.to_raster(path_uea / 'bin_land.tif', driver='GTiff')
+        land_area_calculation(path_uea, 'bin_land.tif', 'bin_land_km2.tif')
+        max_land_area = rioxarray.open_rasterio(path_uea / 'bin_land_km2.tif',
                                                 masked=True)
 
         ar = ar.rio.reproject_match(refugia)  # match
@@ -351,10 +337,10 @@ for ssp in ssps:
         be_in_bio_rel = be_in_bio / max_land_area * 100  # calc overlay share per cell
 
         # save overlays for later
-        ar_in_bio.rio.to_raster(filepath + ssp + f'_ar{removal_lvl}_bio_absolute.tif', driver='GTiff')
-        be_in_bio.rio.to_raster(filepath + ssp + f'_be{removal_lvl}_bio_absolute.tif', driver='GTiff')
-        ar_in_bio_rel.rio.to_raster(filepath + ssp + f'_ar{removal_lvl}_bio_relative.tif', driver='GTiff')
-        be_in_bio_rel.rio.to_raster(filepath + ssp + f'_be{removal_lvl}_bio_relative.tif', driver='GTiff')
+        ar_in_bio.rio.to_raster(path / f'{ssp}_ar{removal_lvl}_bio_absolute.tif', driver='GTiff')
+        be_in_bio.rio.to_raster(path / f'{ssp}_be{removal_lvl}_bio_absolute.tif', driver='GTiff')
+        ar_in_bio_rel.rio.to_raster(path / f'{ssp}_ar{removal_lvl}_bio_relative.tif', driver='GTiff')
+        be_in_bio_rel.rio.to_raster(path / f'{ssp}_be{removal_lvl}_bio_relative.tif', driver='GTiff')
 
         perc_thres = 1  # threshold is less than x% per cell for visualization
         ar_overlay = np.where(ar_in_bio_rel >= perc_thres, ar_in_bio_rel, np.where(ar_in_bio_rel < perc_thres, np.nan, ar_in_bio_rel))
@@ -362,13 +348,13 @@ for ssp in ssps:
         be_overlay = np.where(be_in_bio_rel >= perc_thres, be_in_bio_rel, np.where(be_in_bio_rel < perc_thres, np.nan, be_in_bio_rel))
         be_overlay = be_in_bio_rel.copy(data=be_overlay)
 
-        ar_overlay.rio.to_raster(filepath + 'ar_overlay.tif', driver='GTiff')
-        be_overlay.rio.to_raster(filepath + 'be_overlay.tif', driver='GTiff')
-        refugia.rio.to_raster(filepath_uea + 'refugia_back.tif', driver='GTiff')
+        ar_overlay.rio.to_raster(path / 'ar_overlay.tif', driver='GTiff')
+        be_overlay.rio.to_raster(path / 'be_overlay.tif', driver='GTiff')
+        refugia.rio.to_raster(path_uea / 'refugia_back.tif', driver='GTiff')
 
-        ar = rs.open(filepath + 'ar_overlay.tif')
-        be = rs.open(filepath + 'be_overlay.tif')
-        refug = rs.open(filepath_uea + 'refugia_back.tif')
+        ar = rs.open(path / 'ar_overlay.tif')
+        be = rs.open(path / 'be_overlay.tif')
+        refug = rs.open(path_uea / 'refugia_back.tif')
 
         data_ar = ar.read(1)
         data_be = be.read(1)
@@ -418,19 +404,20 @@ for ssp in ssps:
         cbar_ar.set_label('Afforestation [%]', labelpad=1, fontsize=8)
         cbar_be.set_label('BECCS [%]', labelpad=1, fontsize=8)
         plt.title(f'{ssp}', fontsize=8)
+        plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
         continue
 
 # %% calculate country burden for refugia
 # read the administrative boundary shapefile data
-sf_path = '/Users/rubenprutz/Documents/phd/primary/analyses/cdr_biodiversity/wab/'
-admin_sf = shapefile.Reader(sf_path + 'world-administrative-boundaries.shp')
+sf_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/wab')
+admin_sf = shapefile.Reader(sf_path / 'world-administrative-boundaries.shp')
 
 # use admin_bound_calculator for all SSPs for AR
 for ssp in ssps:
     try:
-        intersect_src = rs.open(filepath + ssp + f'_ar{removal_lvl}_bio_absolute.tif')
+        intersect_src = rs.open(path / f'{ssp}_ar{removal_lvl}_bio_absolute.tif')
         globals()[f'df_{ssp}'] = admin_bound_calculator(ssp, admin_sf, intersect_src)
         globals()[f'df_{ssp}']['option'] = 'AR'
     except Exception as e:
@@ -442,7 +429,7 @@ df_ar = pd.concat([df_SSP1, df_SSP2, df_SSP3], axis=0)
 # use admin_bound_calculator for all SSPs for BECCS
 for ssp in ssps:
     try:
-        intersect_src = rs.open(filepath + ssp + f'_be{removal_lvl}_bio_absolute.tif')
+        intersect_src = rs.open(path / f'{ssp}_be{removal_lvl}_bio_absolute.tif')
         globals()[f'df_{ssp}'] = admin_bound_calculator(ssp, admin_sf, intersect_src)
         globals()[f'df_{ssp}']['option'] = 'Bioenergy'
     except Exception as e:
@@ -455,10 +442,10 @@ df_be = pd.concat([df_SSP1, df_SSP2, df_SSP3], axis=0)
 df_options = pd.concat([df_ar, df_be], axis=0)
 
 # calculate refugia area at 1.5°C
-land_area_calculation(filepath_uea, 'bio1.5_bin.tif', 'bio1.5_bin_km2.tif')
+land_area_calculation(path_uea, 'bio1.5_bin.tif', 'bio1.5_bin_km2.tif')
 
 # use admin_bound_calculator to calc refugia area at 1.5°C per country
-intersect_src = rs.open(filepath_uea + 'bio1.5_bin_km2.tif')
+intersect_src = rs.open(path_uea / 'bio1.5_bin_km2.tif')
 df_bio15 = admin_bound_calculator('all_ssps', admin_sf, intersect_src)
 df_bio15 = df_bio15.rename(columns={'km2': 'bio_km2'})
 
@@ -491,7 +478,7 @@ for ssp in wab_dict.keys():
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6), subplot_kw={'projection': ccrs.LambertAzimuthalEqualArea()})
 
-    shape_records = list(Reader(sf_path + 'world-administrative-boundaries.shp').records())
+    shape_records = list(Reader(sf_path / 'world-administrative-boundaries.shp').records())
 
     # plot each country with data
     for record in shape_records:
@@ -514,7 +501,6 @@ for ssp in wab_dict.keys():
     cbar.set_label(f'Share of national refugia covered by AR and\n BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
                    fontsize=11)
     plt.title(f'{ssp}', fontsize=11)
-
     plt.show()
 
 # %% resample land use to match IPL resolution
@@ -529,7 +515,7 @@ for land_info in land_infos:
         file_out = f'{model}_{land_info}_{scenario}_{removal_lvl}GtCO2_highres.tif'
 
         try:
-            with rs.open(filepath + file_in) as dataset:
+            with rs.open(path / file_in) as dataset:
 
                 data = dataset.read(
                     out_shape=(
@@ -546,22 +532,22 @@ for land_info in land_infos:
                 profile.update(transform=transform, driver='GTiff',
                                height=data.shape[1], width=data.shape[2])
 
-                with rs.open(filepath + file_out, 'w', **profile) as dataset:
+                with rs.open(path / file_out, 'w', **profile) as dataset:
                     dataset.write(data)
 
-                old_size = rioxarray.open_rasterio(filepath + file_out, masked=True)
+                old_size = rioxarray.open_rasterio(path / file_out, masked=True)
                 new_size = old_size / 25  # divide by 25 due to changed resolution (5x5)
-                new_size.rio.to_raster(filepath + file_out, driver='GTiff')
+                new_size.rio.to_raster(path / file_out, driver='GTiff')
 
         except Exception as e:
             print(f'Error processing {scenario}')
 
 # %% plot impact on IPLs
-ipl = rioxarray.open_rasterio(filepath_ipl + 'IPL_2017_2arcmin.tif', masked=True)
+ipl = rioxarray.open_rasterio(path_ipl / 'IPL_2017_2arcmin.tif', masked=True)
 bin_land = ipl.where(ipl.isnull(), 1)  # all=1 if not nodata
-bin_land.rio.to_raster(filepath_ipl + 'bin_land.tif', driver='GTiff')
-land_area_calculation(filepath_ipl, 'bin_land.tif', 'bin_land_km2.tif')
-max_land_area = rioxarray.open_rasterio(filepath_ipl + 'bin_land_km2.tif',
+bin_land.rio.to_raster(path_ipl / 'bin_land.tif', driver='GTiff')
+land_area_calculation(path_ipl, 'bin_land.tif', 'bin_land_km2.tif')
+max_land_area = rioxarray.open_rasterio(path_ipl / 'bin_land_km2.tif',
                                         masked=True)
 
 for ssp in ssps:
@@ -572,11 +558,11 @@ for ssp in ssps:
         ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_lvl}GtCO2_highres.tif'
         be_45 = f'{model}_BECCS_{ssp}-45_{removal_lvl}GtCO2_highres.tif'
 
-        ar_34 = rioxarray.open_rasterio(filepath + ar_34, masked=True)
-        be_34 = rioxarray.open_rasterio(filepath + be_34, masked=True)
+        ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
+        be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
 
-        ar_45 = rioxarray.open_rasterio(filepath + ar_45, masked=True)
-        be_45 = rioxarray.open_rasterio(filepath + be_45, masked=True)
+        ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
+        be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
 
         ar = (ar_34 + ar_45) / 2  # average between the two available rcps
         be = (be_34 + be_45) / 2  # average between the two available rcps
@@ -594,10 +580,10 @@ for ssp in ssps:
         be_in_ipl_rel = be_in_ipl / max_land_area * 100  # calc overlay share per cell
 
         # save overlays for later
-        ar_in_ipl.rio.to_raster(filepath + ssp + f'_ar{removal_lvl}_ipl_absolute.tif', driver='GTiff')
-        be_in_ipl.rio.to_raster(filepath + ssp + f'_be{removal_lvl}_ipl_absolute.tif', driver='GTiff')
-        ar_in_ipl_rel.rio.to_raster(filepath + ssp + f'_ar{removal_lvl}_ipl_relative.tif', driver='GTiff')
-        be_in_ipl_rel.rio.to_raster(filepath + ssp + f'_be{removal_lvl}_ipl_relative.tif', driver='GTiff')
+        ar_in_ipl.rio.to_raster(path / f'{ssp}_ar{removal_lvl}_ipl_absolute.tif', driver='GTiff')
+        be_in_ipl.rio.to_raster(path / f'{ssp}_be{removal_lvl}_ipl_absolute.tif', driver='GTiff')
+        ar_in_ipl_rel.rio.to_raster(path / f'{ssp}_ar{removal_lvl}_ipl_relative.tif', driver='GTiff')
+        be_in_ipl_rel.rio.to_raster(path / f'{ssp}_be{removal_lvl}_ipl_relative.tif', driver='GTiff')
 
         perc_thres = 1  # threshold is less than x% per cell for visualization
         ar_overlay = np.where(ar_in_ipl_rel >= perc_thres, ar_in_ipl_rel, np.where(ar_in_ipl_rel < perc_thres, np.nan, ar_in_ipl_rel))
@@ -605,13 +591,13 @@ for ssp in ssps:
         be_overlay = np.where(be_in_ipl_rel >= perc_thres, be_in_ipl_rel, np.where(be_in_ipl_rel < perc_thres, np.nan, be_in_ipl_rel))
         be_overlay = be_in_ipl_rel.copy(data=be_overlay)
 
-        ar_overlay.rio.to_raster(filepath + 'ar_overlay.tif', driver='GTiff')
-        be_overlay.rio.to_raster(filepath + 'be_overlay.tif', driver='GTiff')
-        ipl.rio.to_raster(filepath_ipl + 'ipl_back.tif', driver='GTiff')
+        ar_overlay.rio.to_raster(path / 'ar_overlay.tif', driver='GTiff')
+        be_overlay.rio.to_raster(path / 'be_overlay.tif', driver='GTiff')
+        ipl.rio.to_raster(path_ipl / 'ipl_back.tif', driver='GTiff')
 
-        ar = rs.open(filepath + 'ar_overlay.tif')
-        be = rs.open(filepath + 'be_overlay.tif')
-        ipl_file = rs.open(filepath_ipl + 'ipl_back.tif')
+        ar = rs.open(path / 'ar_overlay.tif')
+        be = rs.open(path / 'be_overlay.tif')
+        ipl_file = rs.open(path_ipl / 'ipl_back.tif')
 
         data_ar = ar.read(1)
         data_be = be.read(1)
@@ -661,6 +647,7 @@ for ssp in ssps:
         cbar_ar.set_label('Afforestation [%]', labelpad=1, fontsize=8)
         cbar_be.set_label('BECCS [%]', labelpad=1, fontsize=8)
         plt.title(f'{ssp}', fontsize=8)
+        plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
         continue
@@ -669,7 +656,7 @@ for ssp in ssps:
 # use admin_bound_calculator for all SSPs for AR
 for ssp in ssps:
     try:
-        intersect_src = rs.open(filepath + ssp + f'_ar{removal_lvl}_ipl_absolute.tif')
+        intersect_src = rs.open(path / f'{ssp}_ar{removal_lvl}_ipl_absolute.tif')
         globals()[f'df_{ssp}'] = admin_bound_calculator(ssp, admin_sf, intersect_src)
         globals()[f'df_{ssp}']['option'] = 'AR'
     except Exception as e:
@@ -681,7 +668,7 @@ df_ar = pd.concat([df_SSP1, df_SSP2, df_SSP3], axis=0)
 # use admin_bound_calculator for all SSPs for BECCS
 for ssp in ssps:
     try:
-        intersect_src = rs.open(filepath + ssp + f'_be{removal_lvl}_ipl_absolute.tif')
+        intersect_src = rs.open(path / f'{ssp}_be{removal_lvl}_ipl_absolute.tif')
         globals()[f'df_{ssp}'] = admin_bound_calculator(ssp, admin_sf, intersect_src)
         globals()[f'df_{ssp}']['option'] = 'Bioenergy'
     except Exception as e:
@@ -694,10 +681,10 @@ df_be = pd.concat([df_SSP1, df_SSP2, df_SSP3], axis=0)
 df_options = pd.concat([df_ar, df_be], axis=0)
 
 # calculate IPLs area
-land_area_calculation(filepath_ipl, 'IPL_2017_2arcmin.tif', 'IPL_2017_2arcmin_km2.tif')
+land_area_calculation(path_ipl, 'IPL_2017_2arcmin.tif', 'IPL_2017_2arcmin_km2.tif')
 
 # use admin_bound_calculator to calc IPLs area per country
-intersect_src = rs.open(filepath_ipl + 'IPL_2017_2arcmin_km2.tif')
+intersect_src = rs.open(path_ipl / 'IPL_2017_2arcmin_km2.tif')
 df_ipl = admin_bound_calculator('all_ssps', admin_sf, intersect_src)
 df_ipl = df_ipl.rename(columns={'km2': 'ipl_km2'})
 
@@ -728,7 +715,7 @@ for ssp in wab_dict.keys():
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6), subplot_kw={'projection': ccrs.LambertAzimuthalEqualArea()})
 
-    shape_records = list(Reader(sf_path + 'world-administrative-boundaries.shp').records())
+    shape_records = list(Reader(sf_path / 'world-administrative-boundaries.shp').records())
 
     # plot each country with data
     for record in shape_records:
@@ -751,7 +738,6 @@ for ssp in wab_dict.keys():
     cbar.set_label(f'Share of national IPLs covered by AR and\n BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
                    fontsize=11)
     plt.title(f'{ssp}', fontsize=11)
-
     plt.show()
 
 # %% plot ar and beccs for target removal across SSPs
@@ -759,71 +745,71 @@ for ssp in ssps:
     try:
         ar_34 = f'{model}_Afforestation_{ssp}-34_{removal_lvl}GtCO2.tif'
         be_34 = f'{model}_BECCS_{ssp}-34_{removal_lvl}GtCO2.tif'
-    
+
         ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_lvl}GtCO2.tif'
         be_45 = f'{model}_BECCS_{ssp}-45_{removal_lvl}GtCO2.tif'
-    
-        ar_34 = rioxarray.open_rasterio(filepath + ar_34, masked=True)
-        be_34 = rioxarray.open_rasterio(filepath + be_34, masked=True)
-    
-        ar_45 = rioxarray.open_rasterio(filepath + ar_45, masked=True)
-        be_45 = rioxarray.open_rasterio(filepath + be_45, masked=True)
-    
+
+        ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
+        be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
+
+        ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
+        be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
+
         ar = (ar_34 + ar_45) / 2  # average between the two available rcps
         be = (be_34 + be_45) / 2  # average between the two available rcps
         ar_km2 = ar * 1000000  # Mkm2 to km2
         be_km2 = be * 1000000  # Mkm2 to km2
-    
+
         ar_bin = ar_km2.where(ar_km2.isnull(), 1)  # all=1 if not nodata
-        ar_bin.rio.to_raster(filepath + 'ar_bin_land.tif', driver='GTiff')
-        land_area_calculation(filepath, 'ar_bin_land.tif', 'ar_bin_land_km2.tif')
-        ar_max_land_area = rioxarray.open_rasterio(filepath + 'ar_bin_land_km2.tif',
+        ar_bin.rio.to_raster(path / 'ar_bin_land.tif', driver='GTiff')
+        land_area_calculation(path, 'ar_bin_land.tif', 'ar_bin_land_km2.tif')
+        ar_max_land_area = rioxarray.open_rasterio(path / 'ar_bin_land_km2.tif',
                                                 masked=True)
-    
+
         be_bin = be_km2.where(be_km2.isnull(), 1)  # all=1 if not nodata
-        be_bin.rio.to_raster(filepath + 'be_bin_land.tif', driver='GTiff')
-        land_area_calculation(filepath, 'be_bin_land.tif', 'be_bin_land_km2.tif')
-        be_max_land_area = rioxarray.open_rasterio(filepath + 'be_bin_land_km2.tif',
+        be_bin.rio.to_raster(path / 'be_bin_land.tif', driver='GTiff')
+        land_area_calculation(path, 'be_bin_land.tif', 'be_bin_land_km2.tif')
+        be_max_land_area = rioxarray.open_rasterio(path / 'be_bin_land_km2.tif',
                                                 masked=True)
-    
+
         ar_max_land_area = ar_max_land_area.rio.reproject_match(ar_km2)  # match
         ar_km2 = ar_km2 / ar_max_land_area * 100  # calc share per cell
-    
+
         be_max_land_area = be_max_land_area.rio.reproject_match(be_km2)  # match
         be_km2 = be_km2 / be_max_land_area * 100  # calc share per cell
-    
+
         perc_thres = 1  # threshold is less than x% per cell for visualization
         ar_overlay = np.where(ar_km2 >= perc_thres, ar_km2, np.where(ar_km2 < perc_thres, np.nan, ar_km2))
         ar_overlay = ar_km2.copy(data=ar_overlay)
         be_overlay = np.where(be_km2 >= perc_thres, be_km2, np.where(be_km2 < perc_thres, np.nan, be_km2))
         be_overlay = be_km2.copy(data=be_overlay)
-    
-        ar_overlay.rio.to_raster(filepath + 'ar_overlay.tif', driver='GTiff')
-        be_overlay.rio.to_raster(filepath + 'be_overlay.tif', driver='GTiff')
-    
-        ar = rs.open(filepath + 'ar_overlay.tif')
-        be = rs.open(filepath + 'be_overlay.tif')
-    
+
+        ar_overlay.rio.to_raster(path / 'ar_overlay.tif', driver='GTiff')
+        be_overlay.rio.to_raster(path / 'be_overlay.tif', driver='GTiff')
+
+        ar = rs.open(path / 'ar_overlay.tif')
+        be = rs.open(path / 'be_overlay.tif')
+
         data_ar = ar.read(1)
         data_be = be.read(1)
-    
+
         # get the metadata
         transform = ar.transform
         extent_ar = [transform[2], transform[2] + transform[0] * ar.width,
                      transform[5] + transform[4] * ar.height, transform[5]]
-    
+
         transform = be.transform
         extent_be = [transform[2], transform[2] + transform[0] * be.width,
                      transform[5] + transform[4] * be.height, transform[5]]
-    
+
         bounds_ar = [1, 20, 50, 80]
         norm_ar = mpl.colors.BoundaryNorm(bounds_ar, mpl.cm.Greens.N, extend='max')
         cmap_ar = cmr.get_sub_cmap('Greens', 0.2, 1)  # specify colormap subrange
-    
+
         bounds_be = [1, 5, 10, 15]
         norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Reds.N, extend='max')
         cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
-    
+
         fig = plt.figure(figsize=(10, 6))
         ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertAzimuthalEqualArea())  # choose projection | LambertAzimuthalEqualArea())
         img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
@@ -834,7 +820,7 @@ for ssp in ssps:
         cbar_ar.ax.tick_params(labelsize=11)
         cbar_ar.set_label('Afforestation share per grid cell [%]', labelpad=1, fontsize=11)
         plt.title(f'{ssp}', fontsize=11)
-    
+
         fig = plt.figure(figsize=(10, 6))
         ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertAzimuthalEqualArea())  # choose projection | LambertAzimuthalEqualArea())
         img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
@@ -845,6 +831,7 @@ for ssp in ssps:
         cbar_be.ax.tick_params(labelsize=11)
         cbar_be.set_label('BECCS share per grid cell [%]', labelpad=1, fontsize=11)
         plt.title(f'{ssp}', fontsize=11)
+        plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
         continue
@@ -856,71 +843,71 @@ for ssp in ssps:
         try:
             ar_34 = f'{model}_Afforestation_{ssp}-34_{removal_step}GtCO2.tif'
             be_34 = f'{model}_BECCS_{ssp}-34_{removal_step}GtCO2.tif'
-        
+
             ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_step}GtCO2.tif'
             be_45 = f'{model}_BECCS_{ssp}-45_{removal_step}GtCO2.tif'
-        
-            ar_34 = rioxarray.open_rasterio(filepath + ar_34, masked=True)
-            be_34 = rioxarray.open_rasterio(filepath + be_34, masked=True)
-        
-            ar_45 = rioxarray.open_rasterio(filepath + ar_45, masked=True)
-            be_45 = rioxarray.open_rasterio(filepath + be_45, masked=True)
-        
+
+            ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
+            be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
+
+            ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
+            be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
+
             ar = (ar_34 + ar_45) / 2  # average between the two available rcps
             be = (be_34 + be_45) / 2  # average between the two available rcps
             ar_km2 = ar * 1000000  # Mkm2 to km2
             be_km2 = be * 1000000  # Mkm2 to km2
-        
+
             ar_bin = ar_km2.where(ar_km2.isnull(), 1)  # all=1 if not nodata
-            ar_bin.rio.to_raster(filepath + 'ar_bin_land.tif', driver='GTiff')
-            land_area_calculation(filepath, 'ar_bin_land.tif', 'ar_bin_land_km2.tif')
-            ar_max_land_area = rioxarray.open_rasterio(filepath + 'ar_bin_land_km2.tif',
+            ar_bin.rio.to_raster(path / 'ar_bin_land.tif', driver='GTiff')
+            land_area_calculation(path, 'ar_bin_land.tif', 'ar_bin_land_km2.tif')
+            ar_max_land_area = rioxarray.open_rasterio(path / 'ar_bin_land_km2.tif',
                                                     masked=True)
-        
+
             be_bin = be_km2.where(be_km2.isnull(), 1)  # all=1 if not nodata
-            be_bin.rio.to_raster(filepath + 'be_bin_land.tif', driver='GTiff')
-            land_area_calculation(filepath, 'be_bin_land.tif', 'be_bin_land_km2.tif')
-            be_max_land_area = rioxarray.open_rasterio(filepath + 'be_bin_land_km2.tif',
+            be_bin.rio.to_raster(path / 'be_bin_land.tif', driver='GTiff')
+            land_area_calculation(path, 'be_bin_land.tif', 'be_bin_land_km2.tif')
+            be_max_land_area = rioxarray.open_rasterio(path / 'be_bin_land_km2.tif',
                                                     masked=True)
-        
+
             ar_max_land_area = ar_max_land_area.rio.reproject_match(ar_km2)  # match
             ar_km2 = ar_km2 / ar_max_land_area * 100  # calc share per cell
-        
+
             be_max_land_area = be_max_land_area.rio.reproject_match(be_km2)  # match
             be_km2 = be_km2 / be_max_land_area * 100  # calc share per cell
-        
+
             perc_thres = 1  # threshold is less than x% per cell for visualization
             ar_overlay = np.where(ar_km2 >= perc_thres, ar_km2, np.where(ar_km2 < perc_thres, np.nan, ar_km2))
             ar_overlay = ar_km2.copy(data=ar_overlay)
             be_overlay = np.where(be_km2 >= perc_thres, be_km2, np.where(be_km2 < perc_thres, np.nan, be_km2))
             be_overlay = be_km2.copy(data=be_overlay)
-        
-            ar_overlay.rio.to_raster(filepath + 'ar_overlay.tif', driver='GTiff')
-            be_overlay.rio.to_raster(filepath + 'be_overlay.tif', driver='GTiff')
-        
-            ar = rs.open(filepath + 'ar_overlay.tif')
-            be = rs.open(filepath + 'be_overlay.tif')
-        
+
+            ar_overlay.rio.to_raster(path / 'ar_overlay.tif', driver='GTiff')
+            be_overlay.rio.to_raster(path / 'be_overlay.tif', driver='GTiff')
+
+            ar = rs.open(path / 'ar_overlay.tif')
+            be = rs.open(path / 'be_overlay.tif')
+
             data_ar = ar.read(1)
             data_be = be.read(1)
-        
+
             # get the metadata
             transform = ar.transform
             extent_ar = [transform[2], transform[2] + transform[0] * ar.width,
                          transform[5] + transform[4] * ar.height, transform[5]]
-        
+
             transform = be.transform
             extent_be = [transform[2], transform[2] + transform[0] * be.width,
                          transform[5] + transform[4] * be.height, transform[5]]
-        
+
             bounds_ar = [1, 20, 50, 80]
             norm_ar = mpl.colors.BoundaryNorm(bounds_ar, mpl.cm.Greens.N, extend='max')
             cmap_ar = cmr.get_sub_cmap('Greens', 0.2, 1)  # specify colormap subrange
-        
+
             bounds_be = [1, 5, 10, 15]
             norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Reds.N, extend='max')
             cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
-        
+
             fig = plt.figure(figsize=(10, 6))
             ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertAzimuthalEqualArea())  # choose projection | LambertAzimuthalEqualArea())
             img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
@@ -931,7 +918,7 @@ for ssp in ssps:
             cbar_ar.ax.tick_params(labelsize=11)
             cbar_ar.set_label('Afforestation share per grid cell [%]', labelpad=1, fontsize=11)
             plt.title(f'{removal_step} GtCO$_2$ in {ssp}', fontsize=11)
-        
+
             fig = plt.figure(figsize=(10, 6))
             ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertAzimuthalEqualArea())  # choose projection | LambertAzimuthalEqualArea())
             img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
@@ -942,6 +929,7 @@ for ssp in ssps:
             cbar_be.ax.tick_params(labelsize=11)
             cbar_be.set_label('BECCS share per grid cell [%]', labelpad=1, fontsize=11)
             plt.title(f'{removal_step} GtCO$_2$ in {ssp}', fontsize=11)
+            plt.show()
         except Exception as e:
             print(f'Error processing {ssp}: {e}')
             continue
