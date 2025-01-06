@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import rioxarray
 import numpy.matlib
+import matplotlib.pyplot as plt
 import seaborn as sns
 from rasterio.mask import mask
 from shapely.geometry import shape, mapping
@@ -178,6 +179,8 @@ def process_data_and_plot(land_df, removal_df, cdr_option):
     sns.move_legend(plot1, 'lower right', bbox_to_anchor=(0.85, 0.97), ncol=6, title='', columnspacing=0.8)
     sns.move_legend(plot2, 'lower right', bbox_to_anchor=(0.85, 0.97), ncol=6, title='', columnspacing=0.8)
     sns.move_legend(plot3, 'lower right', bbox_to_anchor=(0.85, 0.97), ncol=6, title='', columnspacing=0.8)
+    plt.show()
+
     return land_per_removal[['SSP', 'RCP', 'Year', 'Land', 'Removal', 'Mkm2/GtCO2']]
 
 # function to overlay raster and admin boundary shapefile

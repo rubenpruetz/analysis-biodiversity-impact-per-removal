@@ -130,12 +130,12 @@ for index, row in lookup_image_nc_pre.iterrows():
 
 # %% write crs, convert to tif, and create individual tifs per year and variable
 target_res = (0.1666666666670000019, 0.1666666666670000019)  # uea resolution
-land_infos = np.array(['Afforestation', 'Bioenergy', 'cropland_other', 'forest_total'
-                       'Cropland_total'])  # define for later
+land_infos = np.array(['Afforestation', 'Bioenergy', 'cropland_other',
+                       'forest_total', 'Cropland_total'])  # define for later
 
 start = time()
 
-models = ['IMAGE']  # AIM, GLOBIOM, and IMAGE
+models = ['AIM', 'GLOBIOM', 'IMAGE']  # AIM, GLOBIOM, and IMAGE
 
 for model in models:
 
@@ -159,8 +159,8 @@ for model in models:
                                           band_as_variable=True)
         data_array_proj = nc_file.rio.write_crs('EPSG:4326')
         data_array_proj = data_array_proj['band_' + str(band)]
-        data_array_proj.rio.to_raster(
-            path / 'temp_large_file.tif', driver='GTiff')
+        data_array_proj.rio.to_raster(path / 'temp_large_file.tif',
+                                      driver='GTiff')
 
         with rs.open(path / 'temp_large_file.tif') as src:
             data = src.read(1)
@@ -170,8 +170,15 @@ for model in models:
             dst.write(data, 1)
 
         # resample land use data to resolution of biodiv data
-        tiff_resampler(path / output_name, target_res,
-                       'nearest', path / output_name)
+        tiff_resampler(path / output_name, target_res, 'nearest',
+                       path / output_name)
+
+        # ensure that files are capped at 100%
+        cap_file = rioxarray.open_rasterio(path / output_name,  
+                                           decode_times=False,
+                                           band_as_variable=True)
+        cap_file = cap_file.where((cap_file <= 1) | cap_file.isnull(), 1)  ####################### maybe not required
+        cap_file.rio.to_raster(path / output_name, driver='GTiff')
 
     # compute total bioenergy and forest per scenario and year
     scenarios = lookup_table['scenario'].unique()
@@ -182,36 +189,44 @@ for model in models:
     for scenario in scenarios:
         for year in years:
             # only relevant for IMAGE
-            energy_crops_ir = f'{model}_energy_crops_ir_{scenario}_{year}.tif'
-            energy_crops_rf = f'{model}_energy_crops_rf_{scenario}_{year}.tif'
-            output_name = f'{model}_Bioenergy_{scenario}_{year}.tif'
+            try:
+                energy_crops_ir = f'{model}_energy_crops_ir_{scenario}_{year}.tif'
+                energy_crops_rf = f'{model}_energy_crops_rf_{scenario}_{year}.tif'
+                output_name = f'{model}_Bioenergy_{scenario}_{year}.tif'
 
-            energy_crops_ir = rioxarray.open_rasterio(path / energy_crops_ir,
-                                                      masked=True)
-            energy_crops_rf = rioxarray.open_rasterio(path / energy_crops_rf,
-                                                      masked=True)
+                energy_crops_ir = rioxarray.open_rasterio(path / energy_crops_ir,
+                                                          masked=True)
+                energy_crops_rf = rioxarray.open_rasterio(path / energy_crops_rf,
+                                                          masked=True)
 
-            bioenergy = energy_crops_ir + energy_crops_rf
+                bioenergy = energy_crops_ir + energy_crops_rf
 
-            bioenergy.rio.to_raster(path / output_name,
-                                    driver='GTiff')
+                bioenergy.rio.to_raster(path / output_name,
+                                        driver='GTiff')
+            except Exception as e:
+                print(f'Error processing: {e}')
+                continue
 
     for scenario in scenarios:
         for year in years:
             # only relevant for AIM and GLOBIOM
-            unmanaged_forest = f'{model}_forest_unmanaged_{scenario}_{year}.tif'
-            managed_forest = f'{model}_forest_managed_{scenario}_{year}.tif'
-            output_name = f'{model}_forest_total_{scenario}_{year}.tif'
+            try:
+                unmanaged_forest = f'{model}_forest_unmanaged_{scenario}_{year}.tif'
+                managed_forest = f'{model}_forest_managed_{scenario}_{year}.tif'
+                output_name = f'{model}_forest_total_{scenario}_{year}.tif'
 
-            unmanaged_forest = rioxarray.open_rasterio(path / unmanaged_forest,
-                                                       masked=True)
-            managed_forest = rioxarray.open_rasterio(path / managed_forest,
-                                                     masked=True)
+                unmanaged_forest = rioxarray.open_rasterio(path / unmanaged_forest,
+                                                           masked=True)
+                managed_forest = rioxarray.open_rasterio(path / managed_forest,
+                                                         masked=True)
 
-            total_forest = unmanaged_forest + managed_forest
+                total_forest = unmanaged_forest + managed_forest
 
-            total_forest.rio.to_raster(path / output_name,
-                                       driver='GTiff')
+                total_forest.rio.to_raster(path / output_name,
+                                           driver='GTiff')
+            except Exception as e:
+                print(f'Error processing: {e}')
+                continue
 
     # compute afforestation for all years vs 2010
     for scenario in scenarios:
@@ -231,20 +246,19 @@ for model in models:
             gain_yr = forest_change.where(
                 (forest_change > 0) | forest_change.isnull(), 0)
 
-            gain_yr.rio.to_raster(path / ar_file_yr,
-                                  driver='GTiff')
+            gain_yr.rio.to_raster(path / ar_file_yr, driver='GTiff')
 
     # calculate grid area based on arbitrarily chosen input file
     arbit_input = rioxarray.open_rasterio(
         path / f'{model}_Afforestation_SSP1-19_2050.tif', masked=True)
 
     bin_land = arbit_input.where(arbit_input.isnull(), 1)  # all=1 if not nodata
-    bin_land.rio.to_raster(path / 'bin_land.tif',
-                           driver='GTiff')
+    bin_land.rio.to_raster(path / 'bin_land.tif', driver='GTiff')
 
     land_area_calculation(path, 'bin_land.tif', f'{model}_max_land_area_km2.tif')
     max_land_area = rioxarray.open_rasterio(path /
-                                            f'{model}_max_land_area_km2.tif', masked=True)
+                                            f'{model}_max_land_area_km2.tif', 
+                                            masked=True)
 
     # calculate land use areas based on total surface and land use fractions
     for land_info in land_infos:
@@ -278,24 +292,26 @@ for model in models:
         path = path_globiom
     elif model == 'AIM':
         path = path_aim
-    elif model == 'IMAGE':
-        path = path_image
 
     for scenario in scenario_set:
         for year in year_set:
+            # only relevant for AIM and GLOBIOM
+            try:
+                cropland_bioeng = f'{model}_Bioenergy_{scenario}_{year}.tif'
+                cropland_other = f'{model}_cropland_other_{scenario}_{year}.tif'
+                output_name = f'{model}_Cropland_total_{scenario}_{year}.tif'
 
-            cropland_bioeng = f'{model}_Bioenergy_{scenario}_{year}.tif'
-            cropland_other = f'{model}_cropland_other_{scenario}_{year}.tif'
-            output_name = f'{model}_Cropland_total_{scenario}_{year}.tif'
+                cropland_bioeng = rioxarray.open_rasterio(path / cropland_bioeng,
+                                                          masked=True)
+                cropland_other = rioxarray.open_rasterio(path / cropland_other,
+                                                         masked=True)
+                total_cropland = cropland_bioeng + cropland_other
 
-            cropland_bioeng = rioxarray.open_rasterio(path / cropland_bioeng,
-                                                      masked=True)
-            cropland_other = rioxarray.open_rasterio(path / cropland_other,
-                                                     masked=True)
-            total_cropland = cropland_bioeng + cropland_other
-
-            total_cropland.rio.to_raster(path / output_name,
-                                         driver='GTiff')
+                total_cropland.rio.to_raster(path / output_name,
+                                             driver='GTiff')
+            except Exception as e:
+                print(f'Error processing: {e}')
+                continue
 
 for model in models:
     if model == 'GLOBIOM':

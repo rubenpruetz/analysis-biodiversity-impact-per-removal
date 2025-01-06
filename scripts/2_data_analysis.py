@@ -34,6 +34,7 @@ path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity'
 file_all = 'lookup_table_cdr_files_all_models.csv'
 
 lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
+energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
 model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
@@ -41,7 +42,7 @@ model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 if model == 'GLOBIOM':
     path = path_globiom
     model_setup = 'MESSAGE-GLOBIOM 1.0'
-    removal_lvl = 4
+    removal_lvl = 2.5
 elif model == 'AIM':
     path = path_aim
     model_setup = 'AIM/CGE 2.0'
@@ -49,7 +50,7 @@ elif model == 'AIM':
 elif model == 'IMAGE':
     path = path_image
     model_setup = 'IMAGE 3.0.1'
-    removal_lvl = 2.5
+    removal_lvl = 1
 
 # land-per-removal curve calculation
 # %% STEP1: calculate removal per scenario in for 2020-2100
@@ -96,9 +97,18 @@ ar_land['Variable'] = 'Land demand'
 beccs_removal = cdr[cdr['Variable'] == 'Carbon Sequestration|CCS|Biomass']
 beccs_removal['Variable'] = 'BECCS removal'
 
+# calculate BECCS removal through energy crops only (no residues)
+ec_share = energy_crop_share.loc[energy_crop_share['Model'].isin([model])]
+beccs_removal = pd.merge(beccs_removal,
+                         ec_share[['Scenario', 'Year', 'Share_energy_crops']],
+                         on=['Scenario', 'Year'])
+beccs_removal['Removal'] = beccs_removal['Removal'] * beccs_removal['Share_energy_crops']
+
 # calculate share of bioenergy for BECCS based on biomass with/without CCS
 bioeng_ncss = ar6_db.query('Variable == "Primary Energy|Biomass|Modern|w/o CCS"').reset_index(drop=True)
+bioeng_ncss[numeric_cols] = bioeng_ncss[numeric_cols].round(2)
 bioeng_tot = ar6_db.query('Variable == "Primary Energy|Biomass"').reset_index(drop=True)
+bioeng_tot[numeric_cols] = bioeng_tot[numeric_cols].round(2)
 
 bioeng_wccs = bioeng_tot[['Scenario']].copy()
 bioeng_wccs[numeric_cols] = 1 - (bioeng_ncss[numeric_cols] / bioeng_tot[numeric_cols])
@@ -144,7 +154,7 @@ lpr_beccs = process_data_and_plot(beccs_land, beccs_removal, 'BECCS')  # plot BE
 # %% impact-per-removal analysis (afforestation)
 
 lpr_ar_strict = lpr_ar.loc[lpr_ar['RCP'].isin(['34', '45'])]  # only RCPs available for all SSPs
-removal_steps = [2, 2.5, 3, 4]  # specify CDR levels (add more if required)
+removal_steps = [1, 2, 2.5, 3]  # specify CDR levels (add more if required)
 
 all_results = []
 for removal_step in removal_steps:
@@ -373,11 +383,11 @@ for ssp in ssps:
         extent_refug = [transform[2], transform[2] + transform[0] * refug.width,
                         transform[5] + transform[4] * refug.height, transform[5]]
 
-        bounds_ar = [1, 20, 50, 80]
+        bounds_ar = [1, 5, 10, 20]
         norm_ar = mpl.colors.BoundaryNorm(bounds_ar, mpl.cm.Greens.N, extend='max')
         cmap_ar = cmr.get_sub_cmap('Greens', 0.2, 1)  # specify colormap subrange
 
-        bounds_be = [1, 5, 10, 15]
+        bounds_be = [1, 5, 10, 20]
         norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Reds.N, extend='max')
         cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
 
@@ -469,7 +479,7 @@ wab_dict = {'SSP1': wab_cum_ssp1, 'SSP2': wab_cum_ssp2, 'SSP3': wab_cum_ssp3}
 cdr_sum = 2*removal_lvl  # removal_level from both CDR options
 cdr_sum = int(cdr_sum)
 
-bounds = [0, 5, 10, 15, 20, 25, 30]
+bounds = [0, 1, 5, 10, 15, 25, 30]
 norm = mpl.colors.BoundaryNorm(bounds, mpl.cm.PuRd.N, extend='max')
 cmap = mpl.cm.PuRd
 
