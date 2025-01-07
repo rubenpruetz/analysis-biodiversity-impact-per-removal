@@ -37,39 +37,46 @@ lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
-model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
     model_setup = 'MESSAGE-GLOBIOM 1.0'
-    removal_lvl = 2.5
+    removal_lvl = 2
 elif model == 'AIM':
     path = path_aim
     model_setup = 'AIM/CGE 2.0'
-    removal_lvl = 2.5
+    removal_lvl = 2
 elif model == 'IMAGE':
     path = path_image
     model_setup = 'IMAGE 3.0.1'
-    removal_lvl = 1
+    removal_lvl = 2
 
 # land-per-removal curve calculation
-# %% STEP1: calculate removal per scenario in for 2020-2100
+# %% STEP1: calculate removal per scenario for 2020-2100
 scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
              'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
              'SSP2-60', 'SSP3-Baseline', 'SSP3-34', 'SSP3-45', 'SSP3-60']
+
+if model == 'GLOBIOM':
+    ar_variable = 'Carbon Sequestration|Land Use|Afforestation'
+elif model == 'AIM':
+    ar_variable = 'Carbon Sequestration|Land Use|Afforestation'
+elif model == 'IMAGE':  # for IMAGE afforestation is not available
+    ar_variable = 'Carbon Sequestration|Land Use'
 
 ar6_db = ar6_db.loc[ar6_db['Model'].isin([model_setup]) & ar6_db['Scenario'].isin(scenarios)]
 numeric_cols = [str(year) for year in range(2020, 2110, 10)]
 cdr = ar6_db[['Scenario', 'Variable'] + numeric_cols].copy()
 cdr_array = ['Carbon Sequestration|CCS|Biomass',
-             'Carbon Sequestration|Land Use']
+             ar_variable]
 cdr = cdr[cdr['Variable'].isin(cdr_array)]
 cdr[numeric_cols] = cdr[numeric_cols].abs()
 cdr = cdr.melt(id_vars=['Scenario', 'Variable'], var_name='Year', value_name='Removal')
 cdr['Removal'] = cdr['Removal'] * 0.001  # Mt to Gt
 cdr['Year'] = pd.to_numeric(cdr['Year'])
 
-ar_removal = cdr[cdr['Variable'] == 'Carbon Sequestration|Land Use']
+ar_removal = cdr[cdr['Variable'] == ar_variable]
 ar_removal['Variable'] = 'AR removal'
 
 # %% STEP2: calculate afforestation land per scenario in for 2020-2100
@@ -153,8 +160,10 @@ lpr_beccs = process_data_and_plot(beccs_land, beccs_removal, 'BECCS')  # plot BE
 
 # %% impact-per-removal analysis (afforestation)
 
-lpr_ar_strict = lpr_ar.loc[lpr_ar['RCP'].isin(['34', '45'])]  # only RCPs available for all SSPs
-removal_steps = [1, 2, 2.5, 3]  # specify CDR levels (add more if required)
+rcp_lvl = '34'  # select RCP level (without dot)
+
+lpr_ar_strict = lpr_ar.loc[lpr_ar['RCP'].isin([rcp_lvl])]
+removal_steps = [1.5, 2, 2.5]  # specify CDR levels (add more if required)
 
 all_results = []
 for removal_step in removal_steps:
@@ -225,7 +234,7 @@ for removal_step in removal_steps:
 
 # %% impact-per-removal analysis (BECCS)
 
-lpr_beccs_strict = lpr_beccs.loc[lpr_beccs['RCP'].isin(['34', '45'])]  # only RCPs available for all SSPs
+lpr_beccs_strict = lpr_beccs.loc[lpr_beccs['RCP'].isin([rcp_lvl])]
 
 all_results = []
 for removal_step in removal_steps:
@@ -306,26 +315,17 @@ for removal_step in removal_steps:
                 with rs.open(path / output_name, "w", **profile_updated) as dst:
                     dst.write(tiff_target.astype(rs.float32), 1)
 
-# %% maps of land impact of CDR across SSP1-3 for a certain warming level
+# %% maps of refugia land impact of CDR across SSP1-3 for a certain warming level
 
 ssps = ['SSP1', 'SSP2', 'SSP3']
 
 for ssp in ssps:
     try:
-        ar_34 = f'{model}_Afforestation_{ssp}-34_{removal_lvl}GtCO2.tif'
-        be_34 = f'{model}_BECCS_{ssp}-34_{removal_lvl}GtCO2.tif'
+        ar = f'{model}_Afforestation_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2.tif'
+        be = f'{model}_BECCS_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2.tif'
 
-        ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_lvl}GtCO2.tif'
-        be_45 = f'{model}_BECCS_{ssp}-45_{removal_lvl}GtCO2.tif'
-
-        ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
-        be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
-
-        ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
-        be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
-
-        ar = (ar_34 + ar_45) / 2  # average between the two available rcps
-        be = (be_34 + be_45) / 2  # average between the two available rcps
+        ar = rioxarray.open_rasterio(path / ar, masked=True)
+        be = rioxarray.open_rasterio(path / be, masked=True)
 
         refugia = rioxarray.open_rasterio(path_uea / 'bio1.5_bin.tif', masked=True)  # specify warming level
         bin_land = refugia.where(refugia.isnull(), 1)  # all=1 if not nodata
@@ -479,7 +479,7 @@ wab_dict = {'SSP1': wab_cum_ssp1, 'SSP2': wab_cum_ssp2, 'SSP3': wab_cum_ssp3}
 cdr_sum = 2*removal_lvl  # removal_level from both CDR options
 cdr_sum = int(cdr_sum)
 
-bounds = [0, 1, 5, 10, 15, 25, 30]
+bounds = [0, 1, 5, 10, 15, 20, 25]
 norm = mpl.colors.BoundaryNorm(bounds, mpl.cm.PuRd.N, extend='max')
 cmap = mpl.cm.PuRd
 
@@ -516,13 +516,12 @@ for ssp in wab_dict.keys():
 # %% resample land use to match IPL resolution
 upscale_factor = 5  # equivalent to IPL resolution
 land_infos = np.array(['Afforestation', 'BECCS'])
-scenarios = np.array(['SSP1-34', 'SSP2-34', 'SSP3-34', 'SSP1-45', 'SSP2-45', 'SSP3-45'])
 
 for land_info in land_infos:
-    for scenario in scenarios:
+    for ssp in ssps:
 
-        file_in = f'{model}_{land_info}_{scenario}_{removal_lvl}GtCO2.tif'
-        file_out = f'{model}_{land_info}_{scenario}_{removal_lvl}GtCO2_highres.tif'
+        file_in = f'{model}_{land_info}_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2.tif'
+        file_out = f'{model}_{land_info}_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2_highres.tif'
 
         try:
             with rs.open(path / file_in) as dataset:
@@ -550,7 +549,7 @@ for land_info in land_infos:
                 new_size.rio.to_raster(path / file_out, driver='GTiff')
 
         except Exception as e:
-            print(f'Error processing {scenario}')
+            print(f'Error processing {ssp}')
 
 # %% plot impact on IPLs
 ipl = rioxarray.open_rasterio(path_ipl / 'IPL_2017_2arcmin.tif', masked=True)
@@ -562,20 +561,11 @@ max_land_area = rioxarray.open_rasterio(path_ipl / 'bin_land_km2.tif',
 
 for ssp in ssps:
     try:
-        ar_34 = f'{model}_Afforestation_{ssp}-34_{removal_lvl}GtCO2_highres.tif'
-        be_34 = f'{model}_BECCS_{ssp}-34_{removal_lvl}GtCO2_highres.tif'
+        ar = f'{model}_Afforestation_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2_highres.tif'
+        be = f'{model}_BECCS_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2_highres.tif'
 
-        ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_lvl}GtCO2_highres.tif'
-        be_45 = f'{model}_BECCS_{ssp}-45_{removal_lvl}GtCO2_highres.tif'
-
-        ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
-        be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
-
-        ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
-        be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
-
-        ar = (ar_34 + ar_45) / 2  # average between the two available rcps
-        be = (be_34 + be_45) / 2  # average between the two available rcps
+        ar = rioxarray.open_rasterio(path / ar, masked=True)
+        be = rioxarray.open_rasterio(path / be, masked=True)
 
         ar = ar.rio.reproject_match(ipl)  # match
         ar_in_ipl = ar * ipl * 1000000  # calc overlay (Mkm2 to km2)
@@ -716,7 +706,7 @@ wab_cum_ssp3 = wab_cum.query('key == "SSP3"').reset_index(drop=True)
 # %% plot share of national IPLs affected by AR and BECCS
 wab_dict = {'SSP1': wab_cum_ssp1, 'SSP2': wab_cum_ssp2, 'SSP3': wab_cum_ssp3}
 
-bounds = [0, 5, 10, 15, 20, 25, 30]
+bounds = [0, 1, 5, 10, 15, 20, 25]
 norm = mpl.colors.BoundaryNorm(bounds, mpl.cm.RdPu.N, extend='max')
 cmap = mpl.cm.RdPu
 
@@ -753,20 +743,12 @@ for ssp in wab_dict.keys():
 # %% plot ar and beccs for target removal across SSPs
 for ssp in ssps:
     try:
-        ar_34 = f'{model}_Afforestation_{ssp}-34_{removal_lvl}GtCO2.tif'
-        be_34 = f'{model}_BECCS_{ssp}-34_{removal_lvl}GtCO2.tif'
+        ar = f'{model}_Afforestation_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2.tif'
+        be = f'{model}_BECCS_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2.tif'
 
-        ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_lvl}GtCO2.tif'
-        be_45 = f'{model}_BECCS_{ssp}-45_{removal_lvl}GtCO2.tif'
+        ar = rioxarray.open_rasterio(path / ar, masked=True)
+        be = rioxarray.open_rasterio(path / be, masked=True)
 
-        ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
-        be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
-
-        ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
-        be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
-
-        ar = (ar_34 + ar_45) / 2  # average between the two available rcps
-        be = (be_34 + be_45) / 2  # average between the two available rcps
         ar_km2 = ar * 1000000  # Mkm2 to km2
         be_km2 = be * 1000000  # Mkm2 to km2
 
@@ -812,11 +794,11 @@ for ssp in ssps:
         extent_be = [transform[2], transform[2] + transform[0] * be.width,
                      transform[5] + transform[4] * be.height, transform[5]]
 
-        bounds_ar = [1, 20, 50, 80]
+        bounds_ar = [1, 5, 10, 20]
         norm_ar = mpl.colors.BoundaryNorm(bounds_ar, mpl.cm.Greens.N, extend='max')
         cmap_ar = cmr.get_sub_cmap('Greens', 0.2, 1)  # specify colormap subrange
 
-        bounds_be = [1, 5, 10, 15]
+        bounds_be = [1, 5, 10, 20]
         norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Reds.N, extend='max')
         cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
 
@@ -851,20 +833,12 @@ removal_steps = [2, 3, 4]
 for ssp in ssps:
     for removal_step in removal_steps:
         try:
-            ar_34 = f'{model}_Afforestation_{ssp}-34_{removal_step}GtCO2.tif'
-            be_34 = f'{model}_BECCS_{ssp}-34_{removal_step}GtCO2.tif'
+            ar = f'{model}_Afforestation_{ssp}-{rcp_lvl}_{removal_step}GtCO2.tif'
+            be = f'{model}_BECCS_{ssp}-{rcp_lvl}_{removal_step}GtCO2.tif'
 
-            ar_45 = f'{model}_Afforestation_{ssp}-45_{removal_step}GtCO2.tif'
-            be_45 = f'{model}_BECCS_{ssp}-45_{removal_step}GtCO2.tif'
+            ar = rioxarray.open_rasterio(path / ar, masked=True)
+            be = rioxarray.open_rasterio(path / be, masked=True)
 
-            ar_34 = rioxarray.open_rasterio(path / ar_34, masked=True)
-            be_34 = rioxarray.open_rasterio(path / be_34, masked=True)
-
-            ar_45 = rioxarray.open_rasterio(path / ar_45, masked=True)
-            be_45 = rioxarray.open_rasterio(path / be_45, masked=True)
-
-            ar = (ar_34 + ar_45) / 2  # average between the two available rcps
-            be = (be_34 + be_45) / 2  # average between the two available rcps
             ar_km2 = ar * 1000000  # Mkm2 to km2
             be_km2 = be * 1000000  # Mkm2 to km2
 
