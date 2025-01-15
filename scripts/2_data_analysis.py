@@ -37,7 +37,7 @@ lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
-model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -154,9 +154,52 @@ beccs_land = pd.merge(be_land[['Scenario', 'Year', 'Land', 'Variable']],
 
 beccs_land['Land'] = beccs_land['Land'] * beccs_land['Fraction']
 
-# %% plot land-per-removal, removal and land for AR and BECCS
+# %% compute and plot land-per-removal, removal, and land for AR and BECCS
 lpr_ar = process_data_and_plot(ar_land, ar_removal, 'AR')  # plot AR data
 lpr_beccs = process_data_and_plot(beccs_land, beccs_removal, 'BECCS')  # plot BECCS data
+
+# %% compute and plot land per cumulative removal
+
+ar_cum = ar_removal.pivot_table(index=['Scenario', 'Variable'],
+                                columns='Year', values='Removal').reset_index()
+ar_cum.columns = ar_cum.columns.astype(str)
+
+beccs_cum = beccs_removal.pivot_table(index=['Scenario', 'Variable'],
+                                      columns='Year', values='Removal').reset_index()
+beccs_cum.columns = beccs_cum.columns.astype(str)
+
+# interpolate between available years to estimate cumulative removal
+def _cum_cdr_calc(cdr_df):
+    year_cols_all = [str(year) for year in range(2020, 2101)]
+    cdr = cdr_df.reindex(columns=['Scenario', 'Variable'] + year_cols_all, fill_value=None)
+    cdr.replace(0, np.nan, inplace=True)
+    cdr.loc[pd.isna(cdr['2020']), '2020'] = 0
+    cdr.set_index(['Scenario', 'Variable'], inplace=True)
+    cdr.interpolate(method='linear', inplace=True, axis=1)
+    cdr.reset_index(inplace=True)
+    cum_cdr = cdr[['Scenario', 'Variable']].copy()
+
+    for year in range(2020, 2101):
+        current_year = str(year)
+        year_range = [str(year) for year in range(2020, year + 1)]
+        cum_cdr[current_year] = cdr[year_range].sum(axis=1)
+
+    cum_cdr = cum_cdr[['Scenario', 'Variable'] + numeric_cols].copy()
+    
+    cum_cdr = pd.melt(cum_cdr, id_vars=['Scenario', 'Variable'], var_name='Year',
+                      value_vars=numeric_cols, value_name='Removal')
+    
+    cum_cdr['Year'] = cum_cdr['Year'].astype(int)
+
+    return cum_cdr
+
+
+ar_cum = _cum_cdr_calc(ar_cum)
+beccs_cum = _cum_cdr_calc(beccs_cum)
+
+# plot land per cumulative removal, cumulative removal, and land for AR and BECCS
+lpr_ar_cum = process_data_and_plot(ar_land, ar_cum, 'AR')  # plot AR data
+lpr_beccs_cum = process_data_and_plot(beccs_land, beccs_cum, 'BECCS')  # plot BECCS data
 
 # %% impact-per-removal analysis (afforestation)
 
