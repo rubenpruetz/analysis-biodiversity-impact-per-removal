@@ -143,6 +143,7 @@ def pos_val_summer(arr, squeeze=True):
 def process_data_and_plot(land_df, removal_df, cdr_option):
     land_per_removal = pd.merge(land_df, removal_df, on=['Scenario', 'Year'])
     land_per_removal['Land'] = land_per_removal['Land'] * 0.000001  # km2 to Mkm2
+    land_per_removal.loc[land_per_removal['Land'] == 0, 'Removal'] = 0  # consistency rule: if land=0, removal=0
     land_per_removal['Mkm2/GtCO2'] = land_per_removal['Land'] / land_per_removal['Removal']
     land_per_removal['SSP'] = land_per_removal['Scenario'].str.split('-').str[0]
     land_per_removal['RCP'] = land_per_removal['Scenario'].str.split('-').str[1]
