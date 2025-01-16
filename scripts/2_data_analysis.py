@@ -37,7 +37,7 @@ lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
-model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -53,10 +53,12 @@ elif model == 'IMAGE':
     removal_lvl = 2
 
 # land-per-removal curve calculation
-# %% STEP1: calculate removal per scenario for 2020-2100
+# %% STEP1: calculate removal per scenario for 2010-2100
 scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
              'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
              'SSP2-60', 'SSP3-Baseline', 'SSP3-34', 'SSP3-45', 'SSP3-60']
+
+numeric_cols20 = [str(year) for year in range(2020, 2110, 10)]
 
 if model == 'GLOBIOM':
     ar_variable = 'Carbon Sequestration|Land Use|Afforestation'
@@ -66,12 +68,11 @@ elif model == 'IMAGE':  # for IMAGE afforestation is not available
     ar_variable = 'Carbon Sequestration|Land Use'
 
 ar6_db = ar6_db.loc[ar6_db['Model'].isin([model_setup]) & ar6_db['Scenario'].isin(scenarios)]
-numeric_cols = [str(year) for year in range(2020, 2110, 10)]
-cdr = ar6_db[['Scenario', 'Variable'] + numeric_cols].copy()
+cdr = ar6_db[['Scenario', 'Variable'] + numeric_cols20].copy()
 cdr_array = ['Carbon Sequestration|CCS|Biomass',
              ar_variable]
 cdr = cdr[cdr['Variable'].isin(cdr_array)]
-cdr[numeric_cols] = cdr[numeric_cols].abs()
+cdr[numeric_cols20] = cdr[numeric_cols20].clip(lower=0)  # set negative values to zero
 cdr = cdr.melt(id_vars=['Scenario', 'Variable'], var_name='Year', value_name='Removal')
 cdr['Removal'] = cdr['Removal'] * 0.001  # Mt to Gt
 cdr['Year'] = pd.to_numeric(cdr['Year'])
@@ -113,12 +114,12 @@ beccs_removal['Removal'] = beccs_removal['Removal'] * beccs_removal['Share_energ
 
 # calculate share of bioenergy for BECCS based on biomass with/without CCS
 bioeng_ncss = ar6_db.query('Variable == "Primary Energy|Biomass|Modern|w/o CCS"').reset_index(drop=True)
-bioeng_ncss[numeric_cols] = bioeng_ncss[numeric_cols].round(2)
+bioeng_ncss[numeric_cols20] = bioeng_ncss[numeric_cols20].round(2)
 bioeng_tot = ar6_db.query('Variable == "Primary Energy|Biomass"').reset_index(drop=True)
-bioeng_tot[numeric_cols] = bioeng_tot[numeric_cols].round(2)
+bioeng_tot[numeric_cols20] = bioeng_tot[numeric_cols20].round(2)
 
 bioeng_wccs = bioeng_tot[['Scenario']].copy()
-bioeng_wccs[numeric_cols] = 1 - (bioeng_ncss[numeric_cols] / bioeng_tot[numeric_cols])
+bioeng_wccs[numeric_cols20] = 1 - (bioeng_ncss[numeric_cols20] / bioeng_tot[numeric_cols20])
 bioeng_wccs['Variable'] = 'Removal fraction'
 bioeng_wccs = pd.melt(bioeng_wccs,
                       id_vars=['Scenario', 'Variable'],
@@ -160,19 +161,25 @@ lpr_beccs = process_data_and_plot(beccs_land, beccs_removal, 'BECCS')  # plot BE
 
 # %% compute and plot land per cumulative removal
 
-ar_cum = ar_removal.pivot_table(index=['Scenario', 'Variable'],
-                                columns='Year', values='Removal').reset_index()
+# use dfs for which consistency rule already applies: if land=0, removal=0
+ar_df = lpr_ar[['SSP', 'RCP', 'Year', 'Removal']].copy()
+ar_df['Scenario'] = ar_df['SSP'] + '-' + ar_df['RCP']
+ar_df['Variable'] = 'AR removal'
+ar_cum = ar_df.pivot_table(index=['Scenario', 'Variable'],
+                           columns='Year', values='Removal').reset_index()
 ar_cum.columns = ar_cum.columns.astype(str)
 
-beccs_cum = beccs_removal.pivot_table(index=['Scenario', 'Variable'],
-                                      columns='Year', values='Removal').reset_index()
+beccs_df = lpr_beccs[['SSP', 'RCP', 'Year', 'Removal']].copy()
+beccs_df['Scenario'] = beccs_df['SSP'] + '-' + beccs_df['RCP']
+beccs_df['Variable'] = 'BECCS removal'
+beccs_cum = beccs_df.pivot_table(index=['Scenario', 'Variable'],
+                                 columns='Year', values='Removal').reset_index()
 beccs_cum.columns = beccs_cum.columns.astype(str)
 
 # interpolate between available years to estimate cumulative removal
 def _cum_cdr_calc(cdr_df):
     year_cols_all = [str(year) for year in range(2020, 2101)]
     cdr = cdr_df.reindex(columns=['Scenario', 'Variable'] + year_cols_all, fill_value=None)
-    cdr.replace(0, np.nan, inplace=True)
     cdr.loc[pd.isna(cdr['2020']), '2020'] = 0
     cdr.set_index(['Scenario', 'Variable'], inplace=True)
     cdr.interpolate(method='linear', inplace=True, axis=1)
@@ -184,11 +191,11 @@ def _cum_cdr_calc(cdr_df):
         year_range = [str(year) for year in range(2020, year + 1)]
         cum_cdr[current_year] = cdr[year_range].sum(axis=1)
 
-    cum_cdr = cum_cdr[['Scenario', 'Variable'] + numeric_cols].copy()
-    
+    cum_cdr = cum_cdr[['Scenario', 'Variable'] + numeric_cols20].copy()
+
     cum_cdr = pd.melt(cum_cdr, id_vars=['Scenario', 'Variable'], var_name='Year',
-                      value_vars=numeric_cols, value_name='Removal')
-    
+                      value_vars=numeric_cols20, value_name='Removal')
+
     cum_cdr['Year'] = cum_cdr['Year'].astype(int)
 
     return cum_cdr
@@ -197,9 +204,18 @@ def _cum_cdr_calc(cdr_df):
 ar_cum = _cum_cdr_calc(ar_cum)
 beccs_cum = _cum_cdr_calc(beccs_cum)
 
+# calculate additional CDR land from base year (2020) onwards
+ar_add = ar_land.copy()
+base = ar_add[ar_add['Year'] == 2020].set_index(['Scenario'])['Land']
+ar_add['Land'] = ar_add.apply(lambda row: row['Land'] - base.get(row['Scenario'], 0), axis=1)
+
+beccs_add = beccs_land.copy()
+base = beccs_add[beccs_add['Year'] == 2020].set_index(['Scenario'])['Land']
+beccs_add['Land'] = beccs_add.apply(lambda row: row['Land'] - base.get(row['Scenario'], 0), axis=1)
+
 # plot land per cumulative removal, cumulative removal, and land for AR and BECCS
-lpr_ar_cum = process_data_and_plot(ar_land, ar_cum, 'AR')  # plot AR data
-lpr_beccs_cum = process_data_and_plot(beccs_land, beccs_cum, 'BECCS')  # plot BECCS data
+lpr_ar_cum = process_data_and_plot(ar_add, ar_cum, 'AR')  # plot AR data
+lpr_beccs_cum = process_data_and_plot(beccs_add, beccs_cum, 'BECCS')  # plot BECCS data
 
 # %% impact-per-removal analysis (afforestation)
 
