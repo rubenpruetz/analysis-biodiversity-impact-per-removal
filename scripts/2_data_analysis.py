@@ -15,16 +15,13 @@ from pathlib import Path
 plt.rcParams.update({'figure.dpi': 600})
 
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
-ar6_file = 'AR6_Scenarios_Database_World_v1.1.csv'
-ar6_db = pd.read_csv(path_ar6_data / ar6_file)
-
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
-
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 file_all = 'lookup_table_cdr_files_all_models.csv'
 
+ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
