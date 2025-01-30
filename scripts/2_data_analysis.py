@@ -224,3 +224,160 @@ process_mi_data_and_plot(tot_beccs_land, tot_beccs_removal, 'BECCS', 'non-cumula
 
 process_mi_data_and_plot(tot_ar_add, tot_ar_cum, 'AR', 'cumulative')  # plot AR data
 process_mi_data_and_plot(tot_beccs_add, tot_beccs_cum, 'BECCS', 'cumulative')  # plot BECCS data
+
+# %% impact-per-removal analysis (afforestation)
+
+rcp_lvl = '34'  # select RCP level (without dot)
+
+lpr_ar_strict = lpr_ar.loc[lpr_ar['RCP'].isin([rcp_lvl])]
+removal_steps = [1.5, 2, 2.5]  # specify CDR levels (add more if required)
+
+all_results = []
+for removal_step in removal_steps:
+    # for each scenario, get first yr >= x GtCO2 and -10 yrs for lower bound
+    ar_up_xgt = lpr_ar_strict[lpr_ar_strict['Removal'] >=
+                              removal_step].groupby(['SSP', 'RCP']).first().reset_index()
+    ar_up_xgt = ar_up_xgt[['SSP', 'RCP', 'Year']].copy()
+    ar_low_xgt = ar_up_xgt.copy()
+    ar_low_xgt['Year'] = ar_low_xgt['Year'] - 10
+
+    ar_low_xgt = pd.merge(ar_low_xgt, lpr_ar_strict[['RCP', 'SSP', 'Year', 'Removal']],
+                          on=['SSP', 'RCP', 'Year'], how='inner')
+
+    ar_up_xgt = pd.merge(ar_up_xgt, lpr_ar_strict[['RCP', 'SSP', 'Year', 'Removal']],
+                         on=['SSP', 'RCP', 'Year'], how='inner')
+
+    ar_range = pd.merge(ar_low_xgt, ar_up_xgt, on=['SSP', 'RCP'],
+                        suffixes=['_low', '_up'])
+
+    # for each scenario, calc in which year x GtCO2 is removed
+    def yr_target_finder(row):
+        yr_low = row['Year_low']
+        yr_up = row['Year_up']
+        cdr_low = row['Removal_low']
+        cdr_up = row['Removal_up']
+        cdr_target = removal_step
+
+        yr_target = yr_low + ((yr_up - yr_low) / (cdr_up - cdr_low)) * (cdr_target - cdr_low)
+        return yr_target
+
+    ar_range['yr_target'] = ar_range.apply(yr_target_finder, axis=1)
+
+    # interpolate land use layers to yr_target
+    ar_test = []
+
+    for index, row in ar_range.iterrows():
+        ssp = row['SSP']
+        rcp = row['RCP']
+        yr_low = row['Year_low']
+        yr_up = row['Year_up']
+        yr_target = row['yr_target']
+
+        lower_tiff = f'{model}_Afforestation_{ssp}-{rcp}_{yr_low}.tif'
+        upper_tiff = f'{model}_Afforestation_{ssp}-{rcp}_{yr_up}.tif'
+        output_name = f'{model}_Afforestation_{ssp}-{rcp}_{removal_step}GtCO2.tif'
+
+        with rs.open(path / lower_tiff) as src_low:
+            with rs.open(path / upper_tiff) as src_up:
+                # Read raster data and geospatial information
+                lower_tiff = src_low.read(1)
+                upper_tiff = src_up.read(1)
+                profile_lower = src_low.profile
+
+                lower_tiff = lower_tiff * 0.000001  # km2 to Mkm2
+                upper_tiff = upper_tiff * 0.000001  # km2 to Mkm2
+
+                yr_diff = yr_up - yr_low  # diff of known years
+                tiff_diff = upper_tiff - lower_tiff  # diff of known tiffs
+
+                # lower tiff plus the fraction of tiff_diff for a given target yr
+                tiff_target = lower_tiff + (tiff_diff * ((yr_target - yr_low) / yr_diff))
+
+                profile_updated = profile_lower.copy()
+                profile_updated.update(dtype=rs.float32)
+
+                with rs.open(path / output_name, "w", **profile_updated) as dst:
+                    dst.write(tiff_target.astype(rs.float32), 1)
+
+# %% impact-per-removal analysis (BECCS)
+
+lpr_beccs_strict = lpr_beccs.loc[lpr_beccs['RCP'].isin([rcp_lvl])]
+
+all_results = []
+for removal_step in removal_steps:
+    # for each scenario, get first yr >= x GtCO2 and -10 yrs for lower bound
+    beccs_up_xgt = lpr_beccs_strict[lpr_beccs_strict['Removal'] >=
+                               removal_step].groupby(['SSP', 'RCP']).first().reset_index()
+    beccs_up_xgt = beccs_up_xgt[['SSP', 'RCP', 'Year']].copy()
+    beccs_low_xgt = beccs_up_xgt.copy()
+    beccs_low_xgt['Year'] = beccs_low_xgt['Year'] - 10
+
+    beccs_low_xgt = pd.merge(beccs_low_xgt, lpr_beccs_strict[['RCP', 'SSP', 'Year', 'Removal']],
+                             on=['SSP', 'RCP', 'Year'], how='inner')
+
+    beccs_up_xgt = pd.merge(beccs_up_xgt, lpr_beccs_strict[['RCP', 'SSP', 'Year', 'Removal']],
+                            on=['SSP', 'RCP', 'Year'], how='inner')
+
+    beccs_range = pd.merge(beccs_low_xgt, beccs_up_xgt, on=['SSP', 'RCP'],
+                           suffixes=['_low', '_up'])
+
+    # for each scenario, calc in which year x-amount of CDR is removed
+    def yr_target_finder(row):
+        yr_low = row['Year_low']
+        yr_up = row['Year_up']
+        cdr_low = row['Removal_low']
+        cdr_up = row['Removal_up']
+        cdr_target = removal_step
+
+        yr_target = yr_low + ((yr_up - yr_low) / (cdr_up - cdr_low)) * (cdr_target - cdr_low)
+        return yr_target
+
+    beccs_range['yr_target'] = beccs_range.apply(yr_target_finder, axis=1)
+
+    # interpolate land use layers to yr_target
+    beccs_test = []
+
+    for index, row in beccs_range.iterrows():
+        ssp = row['SSP']
+        rcp = row['RCP']
+        yr_low = row['Year_low']
+        yr_up = row['Year_up']
+        yr_target = row['yr_target']
+
+        lower_tiff = f'{model}_Bioenergy_{ssp}-{rcp}_{yr_low}.tif'
+        upper_tiff = f'{model}_Bioenergy_{ssp}-{rcp}_{yr_up}.tif'
+        output_name = f'{model}_BECCS_{ssp}-{rcp}_{removal_step}GtCO2.tif'
+
+        # get BECCS fraction of bioenergy for respective year and scenario
+        lower_fract = float(beccs_land.loc[(beccs_land['Year'] == yr_low) &
+                                           (beccs_land['Scenario'] == f'{ssp}-{rcp}'),
+                                           'Fraction'].iloc[0])
+        upper_fract = float(beccs_land.loc[(beccs_land['Year'] == yr_up) &
+                                           (beccs_land['Scenario'] == f'{ssp}-{rcp}'),
+                                           'Fraction'].iloc[0])
+
+        with rs.open(path / lower_tiff) as src_low:
+            with rs.open(path / upper_tiff) as src_up:
+                # Read raster data and geospatial information
+                lower_tiff = src_low.read(1)
+                upper_tiff = src_up.read(1)
+                profile_lower = src_low.profile
+
+                lower_tiff = lower_tiff * 0.000001  # km2 to Mkm2
+                upper_tiff = upper_tiff * 0.000001  # km2 to Mkm2
+
+                # multiply bioenery cells by BECCS fraction assuming even distribution
+                lower_beccs = lower_tiff * lower_fract
+                upper_beccs = upper_tiff * upper_fract
+
+                yr_diff = yr_up - yr_low  # diff of known years
+                tiff_diff = upper_beccs - lower_beccs  # diff of known tiffs
+
+                # lower tiff plus the fraction of tiff_diff for a given target yr
+                tiff_target = lower_beccs + (tiff_diff * ((yr_target - yr_low) / yr_diff))
+
+                profile_updated = profile_lower.copy()
+                profile_updated.update(dtype=rs.float32)
+
+                with rs.open(path / output_name, "w", **profile_updated) as dst:
+                    dst.write(tiff_target.astype(rs.float32), 1)

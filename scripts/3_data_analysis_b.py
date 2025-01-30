@@ -16,24 +16,40 @@ import shapefile
 from pathlib import Path
 plt.rcParams.update({'figure.dpi': 600})
 
-path_project = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
+path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
 path_ipl = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ipl_maps/01_Data')
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
-path_gcam = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/gcam_maps')
 path_cz = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/koppen_geiger_maps/1991_2020')
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
-lookup_mi_cdr_df = pd.read_csv(path_project / 'lookup_table_cdr_files_all_models.csv')
+energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
+lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_cdr_files_all_models.csv')
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
+
+# %% choose model to run the script with
+model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+
+if model == 'GLOBIOM':
+    path = path_globiom
+    model_setup = 'MESSAGE-GLOBIOM 1.0'
+    removal_lvl = 2
+elif model == 'AIM':
+    path = path_aim
+    model_setup = 'AIM/CGE 2.0'
+    removal_lvl = 2
+elif model == 'IMAGE':
+    path = path_image
+    model_setup = 'IMAGE 3.0.1'
+    removal_lvl = 2
 
 # %% get temperatures for SSP-RCP combinations
 all_years = [str(year) for year in range(2020, 2101)]
 
-models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'GCAM 4.2', 'IMAGE 3.0.1']
+models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1']
 scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
              'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
              'SSP2-60', 'SSP3-Baseline', 'SSP3-34', 'SSP3-45', 'SSP3-60']
@@ -55,13 +71,50 @@ ar6_data_stab = ar6_data_stab.rename(columns={f'{year}_max': str(year) for year 
 
 ar6_data = ar6_data[['Model', 'Scenario'] + all_years].copy()
 
+# %% calculate AR and BECCS removals for SSP-RCP combinations
+numeric_cols20 = [str(year) for year in range(2020, 2110, 10)]
+
+if model == 'GLOBIOM':
+    ar_variable = 'Carbon Sequestration|Land Use|Afforestation'
+elif model == 'AIM':
+    ar_variable = 'Carbon Sequestration|Land Use|Afforestation'
+elif model == 'IMAGE':  # for IMAGE afforestation is not available
+    ar_variable = 'Carbon Sequestration|Land Use'
+
+ar6_db = ar6_db.loc[ar6_db['Model'].isin([model_setup]) & ar6_db['Scenario'].isin(scenarios)]
+cdr = ar6_db[['Scenario', 'Variable'] + numeric_cols20].copy()
+cdr_array = ['Carbon Sequestration|CCS|Biomass',
+             ar_variable]
+cdr = cdr[cdr['Variable'].isin(cdr_array)]
+cdr[numeric_cols20] = cdr[numeric_cols20].clip(lower=0)  # set negative values to zero
+cdr = cdr.melt(id_vars=['Scenario', 'Variable'], var_name='Year', value_name='Removal')
+cdr['Removal'] = cdr['Removal'] * 0.001  # Mt to Gt
+cdr['Year'] = pd.to_numeric(cdr['Year'])
+
+ar_removal = cdr[cdr['Variable'] == ar_variable]
+ar_removal['Variable'] = 'Afforestation'
+
+beccs_removal = cdr[cdr['Variable'] == 'Carbon Sequestration|CCS|Biomass']
+beccs_removal['Variable'] = 'BECCS'
+
+# calculate BECCS removal through energy crops only (no residues)
+ec_share = energy_crop_share.loc[energy_crop_share['Model'].isin([model])]
+beccs_removal = pd.merge(beccs_removal,
+                         ec_share[['Scenario', 'Year', 'Share_energy_crops']],
+                         on=['Scenario', 'Year'])
+beccs_removal['Removal'] = beccs_removal['Removal'] * beccs_removal['Share_energy_crops']
+beccs_removal = beccs_removal[['Scenario', 'Year', 'Variable', 'Removal']].copy()
+
+cdr = pd.concat([ar_removal, beccs_removal], axis=0)
+cdr.rename(columns={'Variable': 'mitigation_option'}, inplace=True)
+
 # %% choose between biodiv recovery or no recovery after peak warming
 
-temperature_decline = 'not allowed'  # options: 'allowed' or 'not allowed'
+temperature_decline = 'not_allowed'  # options: 'allowed' or 'not_allowed'
 
 if temperature_decline == 'allowed':
     warm_file = ar6_data.copy()
-elif temperature_decline == 'not allowed':
+elif temperature_decline == 'not_allowed':
     warm_file = ar6_data_stab.copy()
 
 bio_select = warm_file.set_index(['Model', 'Scenario'])
@@ -72,28 +125,7 @@ bio_select.reset_index(inplace=True)
 # rename models for the subsequent step
 bio_select.replace({'Model': {'AIM/CGE 2.0': 'AIM',
                               'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
-                              'GCAM 4.2': 'GCAM',
                               'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
-
-# %% choose model to run the script with
-model = 'GCAM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
-
-if model == 'GLOBIOM':
-    path = path_globiom
-    model_setup = 'MESSAGE-GLOBIOM 1.0'
-    removal_lvl = 2
-elif model == 'AIM':
-    path = path_aim
-    model_setup = 'AIM/CGE 2.0'
-    removal_lvl = 2
-elif model == 'IMAGE':
-    path = path_image
-    model_setup = 'IMAGE 3.0.1'
-    removal_lvl = 2
-elif model == 'GCAM':
-    path = path_gcam
-    model_setup = 'GCAM 4.2'
-    removal_lvl = 2
 
 # %% calculate CDR land impact over time
 years = ['2020', '2040', '2060', '2080', '2100']
@@ -114,7 +146,7 @@ def overlay_calculator(input_tif,  # land use model input file (string)
                        file_year,  # year of input file (string)
                        file_scenario,  # input file SSP-RCP scenario (string)
                        mitigation_option,  # 'Afforestation' or 'Bioenergy'
-                       lu_model):  # GLOBIOM or AIM or GCAM or IMAGE
+                       lu_model):  # GLOBIOM or AIM or IMAGE
 
     # load files for CDR and refugia
     land_use = rioxarray.open_rasterio(filepath / f'{lu_model}_{input_tif}',
@@ -231,12 +263,15 @@ area_df['SSP'] = area_df['scenario'].str.split('-').str[0]
 area_df['RCP'] = area_df['scenario'].str.split('-').str[1]
 area_df.rename(columns={'year': 'Year'}, inplace=True)
 area_df['Model'] = f'{model}'
-area_df.to_csv(path / f'{model}_area_df_clim_zone.csv', index=False)
 
-# %%
+# merge with removal data
+area_df = pd.merge(area_df, cdr, how='inner', on=['Scenario', 'Year', 'mitigation_option'])
 
-paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 
-         'IMAGE': path_image, 'GCAM': path_gcam}
+area_df.to_csv(path / f'{model}_area_df_clim_zone_temp_decline_{temperature_decline}.csv', index=False)
+
+# %% plot land allocation within refugia across scenarios
+
+paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
 area_df = load_and_concat('area_df_clim_zone', paths)
 
 cdr_option = 'Afforestation'
@@ -251,8 +286,6 @@ sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 0])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), hue_order=all_rcps, legend=True, ax=axes[1, 0])
-sns.lineplot(data=area_df.query('Model == "GCAM"'), x='Year', y='alloc_perc',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 0])
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 0])
 
@@ -260,8 +293,6 @@ sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 1])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 1])
-sns.lineplot(data=area_df.query('Model == "GCAM"'), x='Year', y='alloc_perc_cz1',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 1])
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 1])
 
@@ -269,8 +300,6 @@ sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 2])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 2])
-sns.lineplot(data=area_df.query('Model == "GCAM"'), x='Year', y='alloc_perc_cz2',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 2])
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 2])
 
@@ -278,8 +307,6 @@ sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz3',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 3])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz3',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 3])
-sns.lineplot(data=area_df.query('Model == "GCAM"'), x='Year', y='alloc_perc_cz3',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 3])
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz3',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 3])
 
@@ -287,8 +314,6 @@ sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz4',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 4])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz4',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 4])
-sns.lineplot(data=area_df.query('Model == "GCAM"'), x='Year', y='alloc_perc_cz4',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 4])
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz4',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 4])
 
@@ -296,8 +321,6 @@ sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz5',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 5])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz5',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 5])
-sns.lineplot(data=area_df.query('Model == "GCAM"'), x='Year', y='alloc_perc_cz5',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 5])
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz5',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 5])
 
@@ -320,7 +343,6 @@ axes[3, 5].set_xlabel('')
 
 axes[0, 0].set_ylabel('AIM')
 axes[1, 0].set_ylabel('GLOBIOM')
-axes[2, 0].set_ylabel('GCAM')
 axes[3, 0].set_ylabel('IMAGE')
 
 fig.supylabel(f'Remaining refugia allocated for {cdr_option} [%] (SSP1-SSP3 range)', 
