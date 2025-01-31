@@ -19,27 +19,24 @@ path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodivers
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
-file_all = 'lookup_table_cdr_files_all_models.csv'
+file_all = 'lookup_table_ar_be_files_all_models.csv'
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
-model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
     model_setup = 'MESSAGE-GLOBIOM 1.0'
-    removal_lvl = 2
 elif model == 'AIM':
     path = path_aim
     model_setup = 'AIM/CGE 2.0'
-    removal_lvl = 2
 elif model == 'IMAGE':
     path = path_image
     model_setup = 'IMAGE 3.0.1'
-    removal_lvl = 2
 
 # land-per-removal curve calculation
 # %% STEP1: calculate removal per scenario for 2010-2100
@@ -230,9 +227,8 @@ process_mi_data_and_plot(tot_beccs_add, tot_beccs_cum, 'BECCS', 'cumulative')  #
 rcp_lvl = '34'  # select RCP level (without dot)
 
 lpr_ar_strict = lpr_ar.loc[lpr_ar['RCP'].isin([rcp_lvl])]
-removal_steps = [1.5, 2, 2.5]  # specify CDR levels (add more if required)
+removal_steps = [2, 2.5]  # specify CDR levels (add more if required)
 
-all_results = []
 for removal_step in removal_steps:
     # for each scenario, get first yr >= x GtCO2 and -10 yrs for lower bound
     ar_up_xgt = lpr_ar_strict[lpr_ar_strict['Removal'] >=
@@ -264,7 +260,6 @@ for removal_step in removal_steps:
     ar_range['yr_target'] = ar_range.apply(yr_target_finder, axis=1)
 
     # interpolate land use layers to yr_target
-    ar_test = []
 
     for index, row in ar_range.iterrows():
         ssp = row['SSP']
@@ -303,7 +298,6 @@ for removal_step in removal_steps:
 
 lpr_beccs_strict = lpr_beccs.loc[lpr_beccs['RCP'].isin([rcp_lvl])]
 
-all_results = []
 for removal_step in removal_steps:
     # for each scenario, get first yr >= x GtCO2 and -10 yrs for lower bound
     beccs_up_xgt = lpr_beccs_strict[lpr_beccs_strict['Removal'] >=
@@ -335,7 +329,6 @@ for removal_step in removal_steps:
     beccs_range['yr_target'] = beccs_range.apply(yr_target_finder, axis=1)
 
     # interpolate land use layers to yr_target
-    beccs_test = []
 
     for index, row in beccs_range.iterrows():
         ssp = row['SSP']
@@ -381,3 +374,29 @@ for removal_step in removal_steps:
 
                 with rs.open(path / output_name, "w", **profile_updated) as dst:
                     dst.write(tiff_target.astype(rs.float32), 1)
+
+# %% generate spatial BECCS file per scenario per year
+
+beccs_land_non_zero = beccs_land[beccs_land['Land'] > 0]
+
+for index, row in beccs_land_non_zero.iterrows():
+    scenario = row['Scenario']
+    year = row['Year']
+    fraction = row['Fraction']
+
+    input_name = f'{model}_Bioenergy_{scenario}_{year}.tif'
+    output_name = f'{model}_BECCS_{scenario}_{year}.tif'
+
+    with rs.open(path / input_name) as src_input:
+        # Read raster data and geospatial information
+        input_tiff = src_input.read(1)
+        profile_input = src_input.profile
+
+        # multiply bioenery cells by BECCS fraction assuming even distribution
+        fract_tiff = input_tiff * fraction
+
+        profile_updated = profile_input.copy()
+        profile_updated.update(dtype=rs.float32)
+
+        with rs.open(path / output_name, "w", **profile_updated) as dst:
+            dst.write(fract_tiff.astype(rs.float32), 1)

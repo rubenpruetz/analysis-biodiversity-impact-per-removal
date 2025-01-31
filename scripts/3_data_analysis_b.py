@@ -27,11 +27,11 @@ path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
-lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_cdr_files_all_models.csv')
+lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_models.csv')
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 
 # %% choose model to run the script with
-model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -145,7 +145,7 @@ def overlay_calculator(input_tif,  # land use model input file (string)
                        filepath,  # filepath input file + / (string)
                        file_year,  # year of input file (string)
                        file_scenario,  # input file SSP-RCP scenario (string)
-                       mitigation_option,  # 'Afforestation' or 'Bioenergy'
+                       mitigation_option,  # 'Afforestation' or 'BECCS'
                        lu_model):  # GLOBIOM or AIM or IMAGE
 
     # load files for CDR and refugia
@@ -261,68 +261,70 @@ for i in range(1, 6):  # calculate land loss percentages for all climate zones
 
 area_df['SSP'] = area_df['scenario'].str.split('-').str[0]
 area_df['RCP'] = area_df['scenario'].str.split('-').str[1]
+area_df.rename(columns={'scenario': 'Scenario'}, inplace=True)
 area_df.rename(columns={'year': 'Year'}, inplace=True)
+area_df['Year'] = area_df['Year'].astype(int)
 area_df['Model'] = f'{model}'
 
 # merge with removal data
-area_df = pd.merge(area_df, cdr, how='inner', on=['Scenario', 'Year', 'mitigation_option'])
+area_df = pd.merge(area_df, cdr, how='outer', on=['Scenario', 'Year', 'mitigation_option'])
 
 area_df.to_csv(path / f'{model}_area_df_clim_zone_temp_decline_{temperature_decline}.csv', index=False)
 
 # %% plot land allocation within refugia across scenarios
 
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
-area_df = load_and_concat('area_df_clim_zone', paths)
+area_df = load_and_concat('area_df_clim_zone_temp_decline_not_allowed', paths)
 
-cdr_option = 'Afforestation'
+cdr_option = 'BECCS'  # options: 'Afforestation' or 'BECCS'
 area_df = area_df.query('mitigation_option == @cdr_option')
 
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
 all_rcps = sorted(area_df['RCP'].unique())
 
-fig, axes = plt.subplots(4, 6, figsize=(12, 8), sharex=True, sharey=True)
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc',
+fig, axes = plt.subplots(3, 6, figsize=(12, 8), sharex=True, sharey=True)
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Removal', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 0])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Removal', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), hue_order=all_rcps, legend=True, ax=axes[1, 0])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 0])
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Removal', y='alloc_perc',
+             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 0])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz1',
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Removal', y='alloc_perc_cz1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 1])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz1',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Removal', y='alloc_perc_cz1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 1])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz1',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 1])
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Removal', y='alloc_perc_cz1',
+             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 1])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz2',
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Removal', y='alloc_perc_cz2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 2])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz2',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Removal', y='alloc_perc_cz2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 2])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz2',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 2])
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Removal', y='alloc_perc_cz2',
+             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 2])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz3',
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Removal', y='alloc_perc_cz3',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 3])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz3',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Removal', y='alloc_perc_cz3',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 3])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz3',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 3])
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Removal', y='alloc_perc_cz3',
+             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 3])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz4',
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Removal', y='alloc_perc_cz4',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 4])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz4',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Removal', y='alloc_perc_cz4',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 4])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz4',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 4])
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Removal', y='alloc_perc_cz4',
+             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 4])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_cz5',
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Removal', y='alloc_perc_cz5',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 5])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_cz5',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Removal', y='alloc_perc_cz5',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 5])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_cz5',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[3, 5])
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Removal', y='alloc_perc_cz5',
+             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 5])
 
 axes[1, 0].legend(bbox_to_anchor=(-0.05, 2.6), loc='upper left', ncols=12,
                   columnspacing=0.8, handletextpad=0.1)
@@ -334,23 +336,23 @@ axes[0, 3].set_title('Temperate')
 axes[0, 4].set_title('Cold')
 axes[0, 5].set_title('Polar')
 
-axes[3, 0].set_xlabel('')
-axes[3, 1].set_xlabel('')
-axes[3, 2].set_xlabel('')
-axes[3, 3].set_xlabel('')
-axes[3, 4].set_xlabel('')
-axes[3, 5].set_xlabel('')
+axes[2, 0].set_xlabel('')
+axes[2, 1].set_xlabel('')
+axes[2, 2].set_xlabel('')
+axes[2, 3].set_xlabel('')
+axes[2, 4].set_xlabel('')
+axes[2, 5].set_xlabel('')
 
 axes[0, 0].set_ylabel('AIM')
 axes[1, 0].set_ylabel('GLOBIOM')
-axes[3, 0].set_ylabel('IMAGE')
+axes[2, 0].set_ylabel('IMAGE')
 
 fig.supylabel(f'Remaining refugia allocated for {cdr_option} [%] (SSP1-SSP3 range)', 
               x=0.05, va='center')
 
-for ax in axes.flat:
-    ax.set_xlim(2020, 2100)
-    ax.set_xticks([2020, 2060, 2100])
+#for ax in axes.flat:
+ #   ax.set_xlim(2020, 2100)
+  #  ax.set_xticks([2020, 2060, 2100])
 
 plt.subplots_adjust(hspace=0.15)
 plt.subplots_adjust(wspace=0.4)
