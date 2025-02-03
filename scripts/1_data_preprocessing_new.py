@@ -174,7 +174,7 @@ for model in models:
                        path / output_name)
 
         # ensure that files are capped at 100%
-        cap_file = rioxarray.open_rasterio(path / output_name,  
+        cap_file = rioxarray.open_rasterio(path / output_name,
                                            decode_times=False,
                                            band_as_variable=True)
         cap_file = cap_file.where((cap_file <= 1) | cap_file.isnull(), 1)  ####################### maybe not required
@@ -257,7 +257,7 @@ for model in models:
 
     land_area_calculation(path, 'bin_land.tif', f'{model}_max_land_area_km2.tif')
     max_land_area = rioxarray.open_rasterio(path /
-                                            f'{model}_max_land_area_km2.tif', 
+                                            f'{model}_max_land_area_km2.tif',
                                             masked=True)
 
     # calculate land use areas based on total surface and land use fractions
