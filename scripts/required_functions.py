@@ -46,10 +46,10 @@ def tiff_resampler(input_tif,  # input tiff (string)
 # function to create binary raster based on refugia threshold
 
 
-def binary_refugia_converter(input_tif,  # input tif (string)
-                             filepath,  # string + /
-                             threshold,  # minimum refugia value (integer)
-                             output_name):  # specify output name (string)
+def binary_converter(input_tif,  # input tif (string)
+                     filepath,  # string + /
+                     threshold,  # minimum value (integer)
+                     output_name):  # specify output name (string)
     with rs.open(filepath / input_tif) as src:
         data = src.read()  # Read the GeoTIFF
         profile = src.profile  # Get metadata of GeoTiff

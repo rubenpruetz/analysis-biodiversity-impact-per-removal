@@ -80,7 +80,7 @@ for index, row in lookup_interpol.iterrows():  # use lookup to interpolate uea f
         with rs.open(path_uea / filename, 'w', **profile) as dst:
             dst.write(file.astype(profile['dtype']))
 
-# create binary raster based on refugia threshold (0.75) using binary_refugia_converter
+# create binary raster based on refugia threshold (0.75) using binary_converter
 input_files = ['bio1.0_near.tif', 'bio1.1_near.tif', 'bio1.2_near.tif',
                'bio1.3_near.tif', 'bio1.4_near.tif', 'bio1.5_near.tif',
                'bio1.6_near.tif', 'bio1.7_near.tif', 'bio1.8_near.tif',
@@ -96,7 +96,7 @@ input_files = ['bio1.0_near.tif', 'bio1.1_near.tif', 'bio1.2_near.tif',
 
 for input_file in input_files:
     output_file = input_file.replace('near.tif', 'bin.tif')
-    binary_refugia_converter(input_file, path_uea, 0.75, output_file)
+    binary_converter(input_file, path_uea, 0.75, output_file)
 
 # %% AIM, GLOBIOM, and IMAGE land use data processing:
 

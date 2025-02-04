@@ -723,3 +723,8 @@ axes[0].set_ylabel(f'Share of CDR land not available for allocation in SSP1-19 [
 plt.subplots_adjust(wspace=0.1)
 sns.despine()
 plt.show()
+
+# %% plot hotspot areas of concern in terms of model agreement
+
+bio1p5 = rioxarray.open_rasterio(path_uea / 'bio1.5_bin.tif', masked=True)
+
