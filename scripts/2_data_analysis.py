@@ -26,7 +26,7 @@ lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
-model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -224,10 +224,10 @@ process_mi_data_and_plot(tot_beccs_add, tot_beccs_cum, 'BECCS', 'cumulative')  #
 
 # %% impact-per-removal analysis (afforestation)
 
-rcp_lvl = '34'  # select RCP level (without dot)
+rcp_lvl = '26'  # select RCP level (without dot)
 
 lpr_ar_strict = lpr_ar.loc[lpr_ar['RCP'].isin([rcp_lvl])]
-removal_steps = [2, 2.5]  # specify CDR levels (add more if required)
+removal_steps = [3]  # specify CDR levels (add more if required)
 
 for removal_step in removal_steps:
     # for each scenario, get first yr >= x GtCO2 and -10 yrs for lower bound

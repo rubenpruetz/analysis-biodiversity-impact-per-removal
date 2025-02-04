@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.patches as mpatches
 import seaborn as sns
 import rioxarray
 import rasterio as rs
@@ -24,6 +25,7 @@ path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 path_ig = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/income')
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
+path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/hotspots_2016_1')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
@@ -31,20 +33,20 @@ lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_model
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 
 # %% choose model to run the script with
-model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
     model_setup = 'MESSAGE-GLOBIOM 1.0'
-    removal_lvl = 2
+    removal_lvl = 3
 elif model == 'AIM':
     path = path_aim
     model_setup = 'AIM/CGE 2.0'
-    removal_lvl = 2
+    removal_lvl = 3
 elif model == 'IMAGE':
     path = path_image
     model_setup = 'IMAGE 3.0.1'
-    removal_lvl = 2
+    removal_lvl = 3
 
 # %% get temperatures for SSP-RCP combinations
 all_years = [str(year) for year in range(2020, 2101)]
@@ -91,7 +93,7 @@ bio_select.replace({'Model': {'AIM/CGE 2.0': 'AIM',
                               'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
 
 # %% calculate CDR land impact over time
-years = ['2020', '2040', '2060', '2080', '2100']
+years = ['2020', '2030', '2040', '2050', '2060', '2070' '2080', '2090', '2100']
 lookup_sub_yrs = lookup_mi_cdr_df.copy()
 lookup_sub_yrs = lookup_sub_yrs.loc[lookup_sub_yrs['year'].isin(years)]
 
@@ -233,7 +235,7 @@ area_df.to_csv(path / f'{model}_area_df_inc_group_temp_decline_{temperature_decl
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
 area_df = load_and_concat('area_df_inc_group_temp_decline_not_allowed', paths)
 
-cdr_option = 'Afforestation'  # options: 'Afforestation' or 'BECCS'
+cdr_option = 'BECCS'  # options: 'Afforestation' or 'BECCS'
 area_df = area_df.query('mitigation_option == @cdr_option')
 
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
@@ -241,7 +243,7 @@ rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
 all_rcps = sorted(area_df['RCP'].unique())
 
 fig, axes = plt.subplots(3, 5, figsize=(12, 8), sharex=True, sharey=True)
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc', 
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 0])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), hue_order=all_rcps, legend=True, ax=axes[1, 0])
@@ -295,7 +297,7 @@ axes[0, 0].set_ylabel('AIM')
 axes[1, 0].set_ylabel('GLOBIOM')
 axes[2, 0].set_ylabel('IMAGE')
 
-fig.supylabel(f'Remaining refugia allocated for {cdr_option} [%] (SSP1-SSP3 range)', 
+fig.supylabel(f'Remaining refugia allocated for {cdr_option} [%] (SSP1-SSP3 range)',
               x=0.05, va='center')
 
 for ax in axes.flat:
@@ -309,7 +311,7 @@ plt.show()
 
 # %% maps of refugia land impact of CDR across SSP1-3 for a certain warming level
 
-rcp_lvl = '34'  # select RCP level (without dot)
+rcp_lvl = '26'  # select RCP level (without dot)
 ssps = ['SSP1', 'SSP2', 'SSP3']
 
 for ssp in ssps:
@@ -385,7 +387,7 @@ for ssp in ssps:
         cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
 
         fig = plt.figure(figsize=(10, 6))
-        ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertAzimuthalEqualArea())  # choose projection | LambertAzimuthalEqualArea())
+        ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
 
         img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
                            origin='upper', cmap='Greys', alpha=0.1)
@@ -479,7 +481,7 @@ cmap = mpl.cm.PuRd
 for ssp in wab_dict.keys():
     df = wab_dict[ssp].copy()
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6), subplot_kw={'projection': ccrs.LambertAzimuthalEqualArea()})
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6), subplot_kw={'projection': ccrs.Robinson()})
 
     shape_records = list(Reader(sf_path / 'world-administrative-boundaries.shp').records())
 
@@ -683,3 +685,131 @@ for ssp in ssps:
         except Exception as e:
             print(f'Error processing {ssp}: {e}')
             continue
+
+# %% estimate land CDR conflict with SDG 15.5 based on different criteria
+hotspots = rioxarray.open_rasterio(path_hotspots / 'hotspots_land_10arcmin.tif')
+bio1p3 = rioxarray.open_rasterio(path_uea / 'bio1.3_bin.tif', masked=True)
+bio1p5 = rioxarray.open_rasterio(path_uea / 'bio1.5_bin.tif', masked=True)
+
+# estimate hotspot areas that a resilient to 1.5C warming
+hotspot_repro = hotspots.rio.reproject_match(bio1p5)
+hs_resil1p5 = hotspot_repro * bio1p5
+
+# estimate reduction in land allocation when excluding areas
+models = ['AIM', 'GLOBIOM', 'IMAGE']
+cdr_options = ['Afforestation', 'BECCS']
+years = [2030, 2050, 2100]
+
+exclu_df = pd.DataFrame(columns=['Model', 'CDR_option', 'Year', 'CDR_land',
+                                 'CDR_in_hs', 'CDR_in_hs1p5', 'CDR_in_bio1p3'])
+for model in models:
+    for cdr_option in cdr_options:
+        for year in years:
+
+            if model == 'GLOBIOM':
+                path = path_globiom
+            elif model == 'AIM':
+                path = path_aim
+            elif model == 'IMAGE':
+                path = path_image
+
+            cdr_land = f'{model}_{cdr_option}_SSP1-19_{year}.tif'  # change scenario if required
+
+            cdr = rioxarray.open_rasterio(path / cdr_land, masked=True)
+            tot_cdr_area = pos_val_summer(cdr, squeeze=True)
+
+            # CDR in biodiversity hotspots
+            cdr_repro = cdr.rio.reproject_match(hotspots)
+            cdr_in_hs = cdr_repro * hotspots
+            cdr_in_hs = pos_val_summer(cdr_in_hs, squeeze=True)
+
+            # CDR in biodiversity hotspots resilient to 1.5C
+            cdr_repro = cdr.rio.reproject_match(hs_resil1p5)
+            cdr_in_hs1p5 = cdr_repro * hs_resil1p5
+            cdr_in_hs1p5 = pos_val_summer(cdr_in_hs1p5, squeeze=True)
+
+            # CDR in today's refugia (1.3C)
+            cdr_repro = cdr.rio.reproject_match(bio1p3)
+            cdr_in_bio1p3 = cdr_repro * bio1p3
+            cdr_in_bio1p3 = pos_val_summer(cdr_in_bio1p3, squeeze=True)
+
+            new_row = pd.DataFrame({'Model': [model],
+                                    'CDR_option': [cdr_option],
+                                    'Year': [year],
+                                    'CDR_land': [tot_cdr_area],
+                                    'CDR_in_hs': [cdr_in_hs],
+                                    'CDR_in_hs1p5': [cdr_in_hs1p5],
+                                    'CDR_in_bio1p3': [cdr_in_bio1p3]})
+
+            exclu_df = pd.concat([exclu_df, new_row], ignore_index=True)
+
+# sum afforestation and BECCS values to get overall land intensive CDR values
+exclu_df_sum = exclu_df.groupby(['Model', 'Year'])[['CDR_land',
+                                                    'CDR_in_hs',
+                                                    'CDR_in_hs1p5',
+                                                    'CDR_in_bio1p3']].agg('sum')
+exclu_df_sum.reset_index(inplace=True)
+exclu_df_sum['CDR_option'] = 'Afforestation & BECCS'
+exclu_df = pd.concat([exclu_df, exclu_df_sum])
+
+# calculate share of overlap of CDR land with biodiversity criteria
+exclu_df['Reduct_hs'] = exclu_df['CDR_in_hs'] / exclu_df['CDR_land'] * 100
+exclu_df['Reduct_hs1p5'] = exclu_df['CDR_in_hs1p5'] / exclu_df['CDR_land'] * 100
+exclu_df['Reduct_bio1p3'] = exclu_df['CDR_in_bio1p3'] / exclu_df['CDR_land'] * 100
+
+exclu_df = pd.melt(exclu_df, id_vars=['Model', 'CDR_option', 'Year'],
+                   value_vars = ['Reduct_hs', 'Reduct_hs1p5', 'Reduct_bio1p3'],
+                   var_name='Reduct_criteria',
+                   value_name='Value')
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 6), sharex=True, sharey=True)
+
+model_colors = {'AIM': 'darkslategrey', 'GLOBIOM': 'blueviolet', 
+                'IMAGE': 'royalblue'}
+cdr_colors = {'Afforestation': 'crimson', 'BECCS': 'darkorange',
+              'Afforestation & BECCS': 'lightsteelblue'}
+
+sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs1p5"'), x='Year',
+            y='Value', hue='CDR_option', legend=True, alpha=0.5, palette=cdr_colors,
+            gap=0, estimator='median', errorbar=('pi', 100), ax=axes[0])
+
+for model, color in model_colors.items():
+    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs1p5"'),
+                  x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
+                  s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[0])
+
+sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs"'), x='Year',
+            y='Value', hue='CDR_option', legend=False, alpha=0.5, palette=cdr_colors,
+            gap=0, estimator='median', errorbar=('pi', 100), ax=axes[1])
+
+for model, color in model_colors.items():
+    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs"'),
+                  x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
+                  s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[1])
+
+sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_bio1p3"'), x='Year',
+            y='Value', hue='CDR_option', legend=False, alpha=0.5, palette=cdr_colors,
+            gap=0, estimator='median', errorbar=('pi', 100), ax=axes[2])
+
+for model, color in model_colors.items():
+    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_bio1p3"'),
+                  x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
+                  s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[2])
+
+model_patches = [mpatches.Patch(color=color, label=model) for model, color in model_colors.items()]
+legend1 = axes[0].legend(handles=model_patches, bbox_to_anchor=(1.6, 1.1),
+                         loc='upper left', ncols=5, columnspacing=0.8,
+                         handletextpad=0.5, frameon=False)
+
+axes[0].legend(bbox_to_anchor=(-0.05, 1.1), loc='upper left', ncols=5,
+               columnspacing=0.8, handletextpad=0.5, frameon=False)
+axes[0].add_artist(legend1)
+
+axes[0].set_xlabel("Exclusion of land within\n1.5 °C resilient biodiversity hotspots")
+axes[1].set_xlabel("Exclusion of land within\ncurrent biodiversity hotspots")
+axes[2].set_xlabel("Exclusion of land within\ntoday's biodiversity refugia [at 1.3 °C]")
+axes[0].set_ylabel(f'Share of CDR land not available for allocation in SSP1-19 [%] \n(median and min-max range across models)')
+
+plt.subplots_adjust(wspace=0.1)
+sns.despine()
+plt.show()
