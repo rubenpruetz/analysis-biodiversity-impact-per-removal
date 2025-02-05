@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patches as mpatches
+from matplotlib.colors import ListedColormap, BoundaryNorm
 import seaborn as sns
 import rioxarray
 import rasterio as rs
@@ -93,7 +94,7 @@ bio_select.replace({'Model': {'AIM/CGE 2.0': 'AIM',
                               'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
 
 # %% calculate CDR land impact over time
-years = ['2020', '2030', '2040', '2050', '2060', '2070' '2080', '2090', '2100']
+years = ['2020', '2030', '2040', '2050', '2060', '2070', '2080', '2090', '2100']
 lookup_sub_yrs = lookup_mi_cdr_df.copy()
 lookup_sub_yrs = lookup_sub_yrs.loc[lookup_sub_yrs['year'].isin(years)]
 
@@ -322,7 +323,7 @@ for ssp in ssps:
         ar = rioxarray.open_rasterio(path / ar, masked=True)
         be = rioxarray.open_rasterio(path / be, masked=True)
 
-        refugia = rioxarray.open_rasterio(path_uea / 'bio1.5_bin.tif', masked=True)  # specify warming level
+        refugia = rioxarray.open_rasterio(path_uea / 'bio1.8_bin.tif', masked=True)  # specify warming level
         bin_land = refugia.where(refugia.isnull(), 1)  # all=1 if not nodata
         bin_land.rio.to_raster(path_uea / 'bin_land.tif', driver='GTiff')
         land_area_calculation(path_uea, 'bin_land.tif', 'bin_land_km2.tif')
@@ -408,7 +409,7 @@ for ssp in ssps:
         cbar_be.ax.tick_params(labelsize=8)
         cbar_ar.set_label('Afforestation [%]', labelpad=1, fontsize=8)
         cbar_be.set_label('BECCS [%]', labelpad=1, fontsize=8)
-        plt.title(f'{ssp}', fontsize=8)
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8)
         plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
@@ -436,7 +437,7 @@ for ssp in ssps:
     try:
         intersect_src = rs.open(path / f'{ssp}_be{removal_lvl}_bio_absolute.tif')
         globals()[f'df_{ssp}'] = admin_bound_calculator(ssp, admin_sf, intersect_src)
-        globals()[f'df_{ssp}']['option'] = 'Bioenergy'
+        globals()[f'df_{ssp}']['option'] = 'BECCS'
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
         globals()[f'df_{ssp}'] = pd.DataFrame()
@@ -446,11 +447,11 @@ df_be = pd.concat([df_SSP1, df_SSP2, df_SSP3], axis=0)
 # concat output dfs for AR and BECCS
 df_options = pd.concat([df_ar, df_be], axis=0)
 
-# calculate refugia area at 1.5°C
-land_area_calculation(path_uea, 'bio1.5_bin.tif', 'bio1.5_bin_km2.tif')
+# calculate refugia area
+land_area_calculation(path_uea, 'bio1.8_bin.tif', 'bio1.8_bin_km2.tif')
 
-# use admin_bound_calculator to calc refugia area at 1.5°C per country
-intersect_src = rs.open(path_uea / 'bio1.5_bin_km2.tif')
+# use admin_bound_calculator to calc refugia area per country
+intersect_src = rs.open(path_uea / 'bio1.8_bin_km2.tif')
 df_bio15 = admin_bound_calculator('all_ssps', admin_sf, intersect_src)
 df_bio15 = df_bio15.rename(columns={'km2': 'bio_km2'})
 
@@ -505,7 +506,7 @@ for ssp in wab_dict.keys():
     cbar.ax.tick_params(labelsize=11)
     cbar.set_label(f'Share of national refugia covered by AR and\n BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
                    fontsize=11)
-    plt.title(f'{ssp}', fontsize=11)
+    plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11)
     plt.show()
 
 # %% plot ar and beccs for target removal across SSPs
@@ -571,26 +572,26 @@ for ssp in ssps:
         cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
 
         fig = plt.figure(figsize=(10, 6))
-        ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertAzimuthalEqualArea())  # choose projection | LambertAzimuthalEqualArea())
+        ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
         img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
                            origin='upper', cmap=cmap_ar, norm=norm_ar, alpha=1)
         ax.coastlines(linewidth=0.2)
         cbar_ar = plt.colorbar(img_ar, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
-        cbar_ar.ax.set_position([0.465, 0, 0.1, 0.35])
+        cbar_ar.ax.set_position([0.465, 0, 0.1, 0.33])
         cbar_ar.ax.tick_params(labelsize=11)
         cbar_ar.set_label('Afforestation share per grid cell [%]', labelpad=1, fontsize=11)
-        plt.title(f'{ssp}', fontsize=11)
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11)
 
         fig = plt.figure(figsize=(10, 6))
-        ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertAzimuthalEqualArea())  # choose projection | LambertAzimuthalEqualArea())
+        ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
         img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
                            origin='upper', cmap=cmap_be, norm=norm_be)
         ax.coastlines(linewidth=0.2)
         cbar_be = plt.colorbar(img_be, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
-        cbar_be.ax.set_position([0.465, 0, 0.1, 0.35])
+        cbar_be.ax.set_position([0.465, 0, 0.1, 0.33])
         cbar_be.ax.tick_params(labelsize=11)
         cbar_be.set_label('BECCS share per grid cell [%]', labelpad=1, fontsize=11)
-        plt.title(f'{ssp}', fontsize=11)
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11)
         plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
@@ -736,8 +737,8 @@ for model in models:
             path = path_image
 
         land_in = f'{model}_{cdr_option}_SSP2-26_2100.tif'  # change scenario if required ###############
-        land_temp = f'{model}_{cdr_option}_SSP2-26_2050_temp.tif'
-        land_out = f'{model}_{cdr_option}_SSP2-26_2050_bin.tif'
+        land_temp = f'{model}_{cdr_option}_SSP2-26_2100_temp.tif'
+        land_out = f'{model}_{cdr_option}_SSP2-26_2100_bin.tif'
 
         land_in = rioxarray.open_rasterio(path / land_in, masked=True)
         bin_land = land_in.where(land_in.isnull(), 1)  # all=1 if not nodata
@@ -748,18 +749,74 @@ for model in models:
 
         land_allo_share = land_in / land_max  # estimate cell shares allocated
         land_allo_share.rio.to_raster(path / land_temp , driver='GTiff')
-        binary_converter(land_temp, path, 0.05, land_out)  # adjust threshold if needed
+        binary_converter(land_temp, path, 0.10, land_out)  # adjust threshold if needed
 
 for cdr_option in cdr_options:
-    aim_land = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_SSP2-26_2050_bin.tif', masked=True)
-    globiom_land = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_SSP2-26_2050_bin.tif', masked=True)
-    image_land = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_SSP2-26_2050_bin.tif', masked=True)
+    aim_land = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
+    globiom_land = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
+    image_land = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
 
     # make sure files are aligned
-    aim_land = aim_land.rio.reproject_match(hs_resil)
-    globiom_land = globiom_land.rio.reproject_match(hs_resil)
-    image_land = image_land.rio.reproject_match(hs_resil)
-    agree_in_res_bio = (aim_land + globiom_land + image_land) * hs_resil
-    agree_in_res_bio.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2050_index_in_res_bio.tif', driver='GTiff')
+    aim_land = aim_land.rio.reproject_match(res_bio)
+    globiom_land = globiom_land.rio.reproject_match(res_bio)
+    image_land = image_land.rio.reproject_match(res_bio)
+    agree_in_res_bio = (aim_land + globiom_land + image_land) * res_bio
+    agree_in_res_bio.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_index_in_res_bio.tif', driver='GTiff')
+    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_index_in_res_bio.tif',
+                     path_all, 2,
+                     f'mi_{cdr_option}_SSP2-26_2100_index_in_res_bio.tif')
 
+hs_resil.rio.to_raster(path_hotspots / 'hs_resilient.tif', driver='GTiff')
 
+# %%
+
+ar = rs.open(path_all / 'mi_Afforestation_SSP2-26_2100_index_in_res_bio.tif')
+be = rs.open(path_all / 'mi_BECCS_SSP2-26_2100_index_in_res_bio.tif')
+refug = rs.open(path_uea / 'bio1.8_bin.tif')
+hs_resil = rs.open(path_hotspots / 'hs_resilient.tif')
+
+data_ar = ar.read(1)
+data_be = be.read(1)
+data_refug = refug.read(1)
+data_hs_resil = hs_resil.read(1)
+
+# get the metadata
+transform = ar.transform
+extent_ar = [transform[2], transform[2] + transform[0] * ar.width,
+             transform[5] + transform[4] * ar.height, transform[5]]
+
+transform = be.transform
+extent_be = [transform[2], transform[2] + transform[0] * be.width,
+             transform[5] + transform[4] * be.height, transform[5]]
+
+transform = refug.transform
+extent_refug = [transform[2], transform[2] + transform[0] * refug.width,
+                transform[5] + transform[4] * refug.height, transform[5]]
+
+transform = hs_resil.transform
+extent_hs = [transform[2], transform[2] + transform[0] * hs_resil.width,
+             transform[5] + transform[4] * hs_resil.height, transform[5]]
+
+color_map = ListedColormap([(0, 0, 0, 0), 'crimson'])
+norm = BoundaryNorm([0, 1], color_map.N)
+
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
+
+# Plot layers with transparency
+img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
+                   origin='upper', cmap='Greys', alpha=0.15)
+
+img_hs = ax.imshow(data_hs_resil, extent=extent_hs, transform=ccrs.PlateCarree(),
+                   origin='upper', cmap='Greys', alpha=0.25)
+
+img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
+                   origin='upper', cmap=color_map, norm=norm)
+
+img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
+                   origin='upper', cmap=color_map, norm=norm)
+
+ax.coastlines(linewidth=0.2)
+
+plt.title('Model agreement on CDR deployment within refugia', fontsize=11)
+plt.show()
