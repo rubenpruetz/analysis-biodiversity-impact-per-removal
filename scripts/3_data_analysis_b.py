@@ -736,7 +736,7 @@ for model in models:
         elif model == 'IMAGE':
             path = path_image
 
-        land_in = f'{model}_{cdr_option}_SSP2-26_2100.tif'  # change scenario if required ###############
+        land_in = f'{model}_{cdr_option}_SSP2-26_2100.tif'  # change scenario if required
         land_temp = f'{model}_{cdr_option}_SSP2-26_2100_temp.tif'
         land_out = f'{model}_{cdr_option}_SSP2-26_2100_bin.tif'
 
@@ -756,7 +756,7 @@ for cdr_option in cdr_options:
     globiom_land = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
     image_land = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
 
-    # make sure files are aligned
+    # calculate model agreement in refugia
     aim_land = aim_land.rio.reproject_match(res_bio)
     globiom_land = globiom_land.rio.reproject_match(res_bio)
     image_land = image_land.rio.reproject_match(res_bio)
@@ -766,17 +766,31 @@ for cdr_option in cdr_options:
                      path_all, 2,
                      f'mi_{cdr_option}_SSP2-26_2100_index_in_res_bio.tif')
 
+    # calculate model agreement in resilient hotspot
+    aim_land = aim_land.rio.reproject_match(hs_resil)
+    globiom_land = globiom_land.rio.reproject_match(hs_resil)
+    image_land = image_land.rio.reproject_match(hs_resil)
+    agree_in_res_bio = (aim_land + globiom_land + image_land) * hs_resil
+    agree_in_res_bio.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_index_in_res_hs.tif', driver='GTiff')
+    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_index_in_res_hs.tif',
+                     path_all, 2,
+                     f'mi_{cdr_option}_SSP2-26_2100_index_in_res_hs.tif')
+
 hs_resil.rio.to_raster(path_hotspots / 'hs_resilient.tif', driver='GTiff')
 
 # %%
 
 ar = rs.open(path_all / 'mi_Afforestation_SSP2-26_2100_index_in_res_bio.tif')
 be = rs.open(path_all / 'mi_BECCS_SSP2-26_2100_index_in_res_bio.tif')
+ar_hs = rs.open(path_all / 'mi_Afforestation_SSP2-26_2100_index_in_res_hs.tif')
+be_hs = rs.open(path_all / 'mi_BECCS_SSP2-26_2100_index_in_res_hs.tif')
 refug = rs.open(path_uea / 'bio1.8_bin.tif')
 hs_resil = rs.open(path_hotspots / 'hs_resilient.tif')
 
 data_ar = ar.read(1)
 data_be = be.read(1)
+data_ar_hs = ar_hs.read(1)
+data_be_hs = be_hs.read(1)
 data_refug = refug.read(1)
 data_hs_resil = hs_resil.read(1)
 
@@ -789,6 +803,14 @@ transform = be.transform
 extent_be = [transform[2], transform[2] + transform[0] * be.width,
              transform[5] + transform[4] * be.height, transform[5]]
 
+transform = ar.transform
+extent_ar_hs = [transform[2], transform[2] + transform[0] * ar_hs.width,
+             transform[5] + transform[4] * ar_hs.height, transform[5]]
+
+transform = be.transform
+extent_be_hs = [transform[2], transform[2] + transform[0] * be_hs.width,
+             transform[5] + transform[4] * be_hs.height, transform[5]]
+
 transform = refug.transform
 extent_refug = [transform[2], transform[2] + transform[0] * refug.width,
                 transform[5] + transform[4] * refug.height, transform[5]]
@@ -797,26 +819,50 @@ transform = hs_resil.transform
 extent_hs = [transform[2], transform[2] + transform[0] * hs_resil.width,
              transform[5] + transform[4] * hs_resil.height, transform[5]]
 
-color_map = ListedColormap([(0, 0, 0, 0), 'crimson'])
-norm = BoundaryNorm([0, 1], color_map.N)
+color_g1 = ListedColormap([(0, 0, 0, 0), 'gainsboro'])
+norm_g1 = BoundaryNorm([0, 1], color_g1.N)
+
+color_g2 = ListedColormap([(0, 0, 0, 0), 'grey'])
+norm_g2 = BoundaryNorm([0, 1], color_g2.N)
+
+color_bio = ListedColormap([(0, 0, 0, 0), 'crimson'])
+norm_bio = BoundaryNorm([0, 1], color_bio.N)
+
+color_hs = ListedColormap([(0, 0, 0, 0), 'gold'])
+norm_hs = BoundaryNorm([0, 1], color_hs.N)
 
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
 
-# Plot layers with transparency
 img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
-                   origin='upper', cmap='Greys', alpha=0.15)
+                   origin='upper', cmap=color_g1, norm=norm_g1)
 
 img_hs = ax.imshow(data_hs_resil, extent=extent_hs, transform=ccrs.PlateCarree(),
-                   origin='upper', cmap='Greys', alpha=0.25)
+                   origin='upper', cmap=color_g2, norm=norm_g2)
 
 img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
-                   origin='upper', cmap=color_map, norm=norm)
+                   origin='upper', cmap=color_bio, norm=norm_bio)
 
 img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
-                   origin='upper', cmap=color_map, norm=norm)
+                   origin='upper', cmap=color_bio, norm=norm_bio)
+
+img_ar_hs = ax.imshow(data_ar_hs, extent=extent_ar_hs, transform=ccrs.PlateCarree(),
+                      origin='upper', cmap=color_hs, norm=norm_hs)
+
+img_be_hs = ax.imshow(data_be_hs, extent=extent_be_hs, transform=ccrs.PlateCarree(),
+                      origin='upper', cmap=color_hs, norm=norm_hs)
 
 ax.coastlines(linewidth=0.2)
 
-plt.title('Model agreement on CDR deployment within refugia', fontsize=11)
+legend_patches = [
+    mpatches.Patch(color='crimson', label='CDR in refugia'),
+    mpatches.Patch(color='gold', label='CDR in refugia & hotspot'),
+    mpatches.Patch(color='gainsboro', label='Refugia'),
+    mpatches.Patch(color='grey', label='Hotspot')]
+
+ax.legend(bbox_to_anchor=(0.12, -0.1), handles=legend_patches, ncols=4,
+          loc='lower left', fontsize=9, frameon=True)
+
+plt.title('Model agreement on CDR deployment in SSP2-26 2100', fontsize=11)
 plt.show()
+
