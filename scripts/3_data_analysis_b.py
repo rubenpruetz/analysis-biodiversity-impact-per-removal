@@ -236,6 +236,9 @@ area_df.to_csv(path / f'{model}_area_df_inc_group_temp_decline_{temperature_decl
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
 area_df = load_and_concat('area_df_inc_group_temp_decline_not_allowed', paths)
 
+rcps = ['19', '26', '34', '45']  # specify RCPs that shall be plotted
+area_df = area_df.loc[area_df['RCP'].isin(rcps)]
+
 cdr_option = 'BECCS'  # options: 'Afforestation' or 'BECCS'
 area_df = area_df.query('mitigation_option == @cdr_option')
 
@@ -243,7 +246,7 @@ rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
 all_rcps = sorted(area_df['RCP'].unique())
 
-fig, axes = plt.subplots(3, 5, figsize=(12, 8), sharex=True, sharey=True)
+fig, axes = plt.subplots(3, 5, figsize=(12, 4), sharex=True, sharey=True)
 sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 0])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc',
@@ -279,7 +282,7 @@ sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_i
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ig4',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 4])
 
-axes[1, 0].legend(bbox_to_anchor=(-0.05, 2.6), loc='upper left', ncols=12,
+axes[1, 0].legend(bbox_to_anchor=(-0.05, 2.8), loc='upper left', ncols=12,
                   columnspacing=0.8, handletextpad=0.1)
 
 axes[0, 0].set_title('Global')
@@ -298,12 +301,13 @@ axes[0, 0].set_ylabel('AIM')
 axes[1, 0].set_ylabel('GLOBIOM')
 axes[2, 0].set_ylabel('IMAGE')
 
-fig.supylabel(f'Remaining refugia allocated for {cdr_option} [%] (SSP1-SSP3 range)',
-              x=0.05, va='center')
+fig.supylabel(f'Remaining refugia allocated for {cdr_option} \n[%] (SSP1-SSP3 range)',
+              x=0.05, va='center', ha='center')
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
     ax.set_xticks([2020, 2060, 2100])
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.7)
 
 plt.subplots_adjust(hspace=0.15)
 plt.subplots_adjust(wspace=0.4)
@@ -860,8 +864,9 @@ legend_patches = [
     mpatches.Patch(color='gainsboro', label='Refugia'),
     mpatches.Patch(color='grey', label='Hotspot')]
 
-ax.legend(bbox_to_anchor=(0.12, -0.1), handles=legend_patches, ncols=4,
-          loc='lower left', fontsize=9, frameon=True)
+ax.legend(bbox_to_anchor=(0.1845, -0.1), handles=legend_patches, ncols=4,
+          loc='lower left', fontsize=8.5, columnspacing=0.8, handletextpad=0.5,
+          frameon=True)
 
 plt.title('Model agreement on CDR deployment in SSP2-26 2100', fontsize=11)
 plt.show()
