@@ -12,6 +12,7 @@ import rasterio as rs
 from time import time
 import cartopy.crs as ccrs
 from cartopy.io.shapereader import Reader
+import cartopy.feature as cfeature
 import cmasher as cmr
 from required_functions import *
 import shapefile
@@ -34,7 +35,7 @@ lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_model
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 
 # %% choose model to run the script with
-model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -391,7 +392,7 @@ for ssp in ssps:
         norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Reds.N, extend='max')
         cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
 
-        fig = plt.figure(figsize=(10, 6))
+        fig = plt.figure(figsize=(10, 6.1))
         ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
 
         img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
@@ -405,15 +406,19 @@ for ssp in ssps:
 
         ax.coastlines(linewidth=0.2)
 
+        ax.set_extent([-167, 167, -58, 90])
+
         cbar_ar = plt.colorbar(img_ar, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
         cbar_be = plt.colorbar(img_be, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
-        cbar_ar.ax.set_position([0.395, 0, 0.1, 0.5])
-        cbar_be.ax.set_position([0.529, 0, 0.1, 0.5])
-        cbar_ar.ax.tick_params(labelsize=8)
-        cbar_be.ax.tick_params(labelsize=8)
-        cbar_ar.set_label('Afforestation [%]', labelpad=1, fontsize=8)
-        cbar_be.set_label('BECCS [%]', labelpad=1, fontsize=8)
-        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8)
+        cbar_ar.ax.set_position([0.38, 0, 0.1, 0.501])
+        cbar_be.ax.set_position([0.546, 0, 0.1, 0.501])
+        cbar_ar.ax.tick_params(labelsize=7)
+        cbar_be.ax.tick_params(labelsize=7)
+        cbar_ar.set_label(f'Afforestation per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
+                          labelpad=1, fontsize=7)
+        cbar_be.set_label(f'BECCS per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
+                          labelpad=1, fontsize=7)
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=7, x=0.04, y=0.2, ha='left')
         plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
@@ -502,15 +507,17 @@ for ssp in wab_dict.keys():
 
     ax.coastlines(linewidth=0.2)
 
+    ax.set_extent([-167, 167, -58, 90])
+
     cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
                         ax=ax, orientation='horizontal',
                         boundaries=bounds, ticks=bounds,
                         spacing='proportional', extend='max')
     cbar.ax.set_position([0.346, -0.175, 0.334, 0.5])
     cbar.ax.tick_params(labelsize=11)
-    cbar.set_label(f'Share of national refugia covered by AR and\n BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
+    cbar.set_label(f'Share of national refugia covered by Afforestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
                    fontsize=11)
-    plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11)
+    plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11, x=0.04, y=0.2, ha='left')
     plt.show()
 
 # %% plot ar and beccs for target removal across SSPs
@@ -580,22 +587,24 @@ for ssp in ssps:
         img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
                            origin='upper', cmap=cmap_ar, norm=norm_ar, alpha=1)
         ax.coastlines(linewidth=0.2)
+        ax.set_extent([-167, 167, -58, 90])
         cbar_ar = plt.colorbar(img_ar, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
         cbar_ar.ax.set_position([0.465, 0, 0.1, 0.33])
         cbar_ar.ax.tick_params(labelsize=11)
         cbar_ar.set_label('Afforestation share per grid cell [%]', labelpad=1, fontsize=11)
-        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11)
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11, x=0.04, y=0.2, ha='left')
 
         fig = plt.figure(figsize=(10, 6))
         ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
         img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
                            origin='upper', cmap=cmap_be, norm=norm_be)
         ax.coastlines(linewidth=0.2)
+        ax.set_extent([-167, 167, -58, 90])
         cbar_be = plt.colorbar(img_be, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
         cbar_be.ax.set_position([0.465, 0, 0.1, 0.33])
         cbar_be.ax.tick_params(labelsize=11)
         cbar_be.set_label('BECCS share per grid cell [%]', labelpad=1, fontsize=11)
-        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11)
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11, x=0.04, y=0.2, ha='left')
         plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
@@ -857,6 +866,7 @@ img_be_hs = ax.imshow(data_be_hs, extent=extent_be_hs, transform=ccrs.PlateCarre
                       origin='upper', cmap=color_hs, norm=norm_hs)
 
 ax.coastlines(linewidth=0.2)
+ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
 legend_patches = [
     mpatches.Patch(color='crimson', label='CDR in refugia'),

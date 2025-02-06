@@ -13,8 +13,6 @@ from shapely.geometry import shape, mapping
 from pathlib import Path
 
 # function to resample geotiffs
-
-
 def tiff_resampler(input_tif,  # input tiff (string)
                    target_resolution,  # target x and y cell resolution (tuple)
                    resampling_method,  # choose rs resampling method (string)
@@ -44,8 +42,6 @@ def tiff_resampler(input_tif,  # input tiff (string)
             dst.write(data)
 
 # function to create binary raster based on refugia threshold
-
-
 def binary_converter(input_tif,  # input tif (string)
                      filepath,  # string + /
                      threshold,  # minimum value (integer)
@@ -62,8 +58,6 @@ def binary_converter(input_tif,  # input tif (string)
         dst.write(output_data.astype(profile['dtype']))
 
 # function to convert nc to geotiff
-
-
 def nc_geotiff_converter(input_nc,  # string
                          filepath,  # string + /
                          variable,  # string
@@ -83,8 +77,6 @@ def nc_geotiff_converter(input_nc,  # string
 
 
 # area calculation per raster cell in WGS84
-
-
 def land_area_calculation(filepath, input_name, output_name=None):
     """
     Function to calc land area for each raster cell in WGS84 without reprojecting
@@ -138,8 +130,6 @@ def pos_val_summer(arr, squeeze=True):
     return np.nansum(arr)  # Sum only non-NaN values
 
 # function to plot land-per-removal, removal, and land
-
-
 def process_data_and_plot(land_df, removal_df, cdr_option):
     land_per_removal = pd.merge(land_df, removal_df, on=['Scenario', 'Year'])
     land_per_removal['Land'] = land_per_removal['Land'] * 0.000001  # km2 to Mkm2
@@ -185,8 +175,6 @@ def process_data_and_plot(land_df, removal_df, cdr_option):
     return land_per_removal[['SSP', 'RCP', 'Year', 'Land', 'Removal', 'Mkm2/GtCO2']]
 
 # function to plot land-per-removal across models and ssps
-
-
 def process_mi_data_and_plot(land_df, removal_df, cdr_option, removal_type):
     land_per_removal = pd.merge(land_df, removal_df, on=['Model', 'Scenario', 'Year'])
     land_per_removal['Land'] = land_per_removal['Land'] * 0.000001  # km2 to Mkm2
@@ -201,34 +189,34 @@ def process_mi_data_and_plot(land_df, removal_df, cdr_option, removal_type):
 
     fig, axes = plt.subplots(3, 3, figsize=(12, 8), sharex=True, sharey=True)
     sns.lineplot(data=land_per_removal.query('SSP == "SSP1" & Model == "GLOBIOM"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', hue_order=all_rcps, palette=rcp_pal,
-                    marker='o', legend=True, ax=axes[0, 0])
+                 y='Mkm2/GtCO2', hue='RCP', hue_order=all_rcps, palette=rcp_pal,
+                 marker='o', legend=True, ax=axes[0, 0])
     sns.lineplot(data=land_per_removal.query('SSP == "SSP1" & Model == "AIM"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[1, 0])
+                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                 marker='o', legend=False, ax=axes[1, 0])
     sns.lineplot(data=land_per_removal.query('SSP == "SSP1" & Model == "IMAGE"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[2, 0])
+                y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                marker='o', legend=False, ax=axes[2, 0])
 
     sns.lineplot(data=land_per_removal.query('SSP == "SSP2" & Model == "GLOBIOM"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[0, 1])
+                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                 marker='o', legend=False, ax=axes[0, 1])
     sns.lineplot(data=land_per_removal.query('SSP == "SSP2" & Model == "AIM"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[1, 1])
+                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                 marker='o', legend=False, ax=axes[1, 1])
     sns.lineplot(data=land_per_removal.query('SSP == "SSP2" & Model == "IMAGE"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[2, 1])
+                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                 marker='o', legend=False, ax=axes[2, 1])
 
     sns.lineplot(data=land_per_removal.query('SSP == "SSP3" & Model == "GLOBIOM"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[0, 2])
+                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                 marker='o', legend=False, ax=axes[0, 2])
     sns.lineplot(data=land_per_removal.query('SSP == "SSP3" & Model == "AIM"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[1, 2])
+                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                 marker='o', legend=False, ax=axes[1, 2])
     sns.lineplot(data=land_per_removal.query('SSP == "SSP3" & Model == "IMAGE"'), x='Year',
-                    y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                    marker='o', legend=False, ax=axes[2, 2])
+                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
+                 marker='o', legend=False, ax=axes[2, 2])
 
     axes[0, 0].legend(bbox_to_anchor=(-0.05, 1.35), loc='upper left', ncols=6,
                       columnspacing=2, handletextpad=0.5)
@@ -261,8 +249,6 @@ def process_mi_data_and_plot(land_df, removal_df, cdr_option, removal_type):
     plt.show()
 
 # function to interpolate between available years to estimate cumulative removal
-
-
 def cum_cdr_calc(cdr_df):
     numeric_cols20 = [str(year) for year in range(2020, 2110, 10)]
     year_cols_all = [str(year) for year in range(2020, 2101)]
@@ -288,15 +274,11 @@ def cum_cdr_calc(cdr_df):
     return cum_cdr
 
 # function to concat multiple dfs across models
-
-
 def load_and_concat(suffix, paths):
     dfs = [pd.read_csv(_path / f'{i}_{suffix}.csv') for i, _path in paths.items()]
     return pd.concat(dfs, ignore_index=True)
 
 # function to overlay raster and admin boundary shapefile
-
-
 def admin_bound_calculator(key, admin_sf, intersect_src):
     sf = admin_sf
     shapes = sf.shapes()
