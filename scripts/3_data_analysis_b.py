@@ -237,7 +237,7 @@ area_df.to_csv(path / f'{model}_area_df_inc_group_temp_decline_{temperature_decl
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
 area_df = load_and_concat('area_df_inc_group_temp_decline_not_allowed', paths)
 
-rcps = ['19', '26', '34', '45']  # specify RCPs that shall be plotted
+rcps = ['19', '26', '45']  # specify RCPs that shall be plotted
 area_df = area_df.loc[area_df['RCP'].isin(rcps)]
 
 cdr_option = 'BECCS'  # options: 'Afforestation' or 'BECCS'
