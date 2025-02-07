@@ -25,7 +25,7 @@ path_ipl = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
-path_ig = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/income')
+path_ag = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/unfccc_annex')
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/hotspots_2016_1')
 
@@ -35,7 +35,7 @@ lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_model
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 
 # %% choose model to run the script with
-model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -99,11 +99,9 @@ years = ['2020', '2030', '2040', '2050', '2060', '2070', '2080', '2090', '2100']
 lookup_sub_yrs = lookup_mi_cdr_df.copy()
 lookup_sub_yrs = lookup_sub_yrs.loc[lookup_sub_yrs['year'].isin(years)]
 
-# load climate zone files
-ig1 = rioxarray.open_rasterio(path_ig / 'low_inc_10arcmin.tif', masked=True)
-ig2 = rioxarray.open_rasterio(path_ig / 'low_mid_inc_10arcmin.tif', masked=True)
-ig3 = rioxarray.open_rasterio(path_ig / 'up_mid_inc_10arcmin.tif', masked=True)
-ig4 = rioxarray.open_rasterio(path_ig / 'high_inc_10arcmin.tif', masked=True)
+# load annex group files
+ag1 = rioxarray.open_rasterio(path_ag / 'annex_i.tif', masked=True)
+ag2 = rioxarray.open_rasterio(path_ag / 'non_annex_i.tif', masked=True)
 
 start = time()  # runtime monitoring
 
@@ -138,22 +136,22 @@ def overlay_calculator(input_tif,  # land use model input file (string)
     cdr_in_bio_regs = []
     bio_area_regs = []
 
-    ig_values = [ig1, ig2, ig3, ig4]
+    ag_values = [ag1, ag2]
 
-    for ig in ig_values:
-        ig_m = ig.rio.reproject_match(land_use)  # ensure consistent match
-        cdr_in_bio_ig = (land_use * refugia) * ig_m
+    for ag in ag_values:
+        ag_m = ag.rio.reproject_match(land_use)  # ensure consistent match
+        cdr_in_bio_ag = (land_use * refugia) * ag_m
 
-        refugia_ig = refugia * ig_m
-        refugia_ig.rio.to_raster(path_uea / 'refugia_ig_temp.tif', driver='GTiff')
-        refugia_ig = land_area_calculation(path_uea, 'refugia_ig_temp.tif')
+        refugia_ag = refugia * ag_m
+        refugia_ag.rio.to_raster(path_uea / 'refugia_ag_temp.tif', driver='GTiff')
+        refugia_ag = land_area_calculation(path_uea, 'refugia_ag_temp.tif')
 
-        cdr_in_bio_ig = pos_val_summer(cdr_in_bio_ig, squeeze=True)
-        refugia_ig = pos_val_summer(refugia_ig, squeeze=True)
+        cdr_in_bio_ag = pos_val_summer(cdr_in_bio_ag, squeeze=True)
+        refugia_ag = pos_val_summer(refugia_ag, squeeze=True)
 
         # calculate regional area "losses" and refugia
-        cdr_in_bio_regs.append(cdr_in_bio_ig)
-        bio_area_regs.append(refugia_ig)
+        cdr_in_bio_regs.append(cdr_in_bio_ag)
+        bio_area_regs.append(refugia_ag)
 
     return cdr_in_bio_agg, bio_area_agg, cdr_in_bio_regs, bio_area_regs
 
@@ -194,34 +192,30 @@ def process_row(row):
             'year': file_year,
             'bio_area': float('nan'),
             'cdr_in_bio': float('nan'),
-            'bio_area_reg': [float('nan')] * 4,
-            'cdr_in_bio_reg': [float('nan')] * 4}
+            'bio_area_reg': [float('nan')] * 2,
+            'cdr_in_bio_reg': [float('nan')] * 2}
 
 
 area_df = pd.DataFrame.from_records(lookup_sub_yrs.apply(process_row,
                                                          axis=1).values)
 area_df = area_df.reset_index(drop=True)
 
-ig_columns = pd.DataFrame(area_df['bio_area_reg'].to_list(),
-                          columns=['bio_area_ig1',
-                                   'bio_area_ig2',
-                                   'bio_area_ig3',
-                                   'bio_area_ig4'])
-area_df = pd.concat([area_df.drop(columns='bio_area_reg'), ig_columns], axis=1)
+ag_columns = pd.DataFrame(area_df['bio_area_reg'].to_list(),
+                          columns=['bio_area_ag1',
+                                   'bio_area_ag2'])
+area_df = pd.concat([area_df.drop(columns='bio_area_reg'), ag_columns], axis=1)
 
-ig_columns = pd.DataFrame(area_df['cdr_in_bio_reg'].to_list(),
-                          columns=['cdr_in_bio_ig1',
-                                   'cdr_in_bio_ig2',
-                                   'cdr_in_bio_ig3',
-                                   'cdr_in_bio_ig4'])
-area_df = pd.concat([area_df.drop(columns='cdr_in_bio_reg'), ig_columns], axis=1)
+ag_columns = pd.DataFrame(area_df['cdr_in_bio_reg'].to_list(),
+                          columns=['cdr_in_bio_ag1',
+                                   'cdr_in_bio_ag2'])
+area_df = pd.concat([area_df.drop(columns='cdr_in_bio_reg'), ag_columns], axis=1)
 
 end = time()
 print(f'Runtime {(end - start) / 60} min')
 
 area_df['alloc_perc'] = area_df['cdr_in_bio'] / area_df['bio_area'] * 100
-for i in range(1, 5):  # calculate land loss percentages for all climate zones
-    area_df[f'alloc_perc_ig{i}'] = area_df[f'cdr_in_bio_ig{i}'] / area_df[f'bio_area_ig{i}'] * 100
+for i in range(1, 3):  # calculate land loss percentages for both annex group files
+    area_df[f'alloc_perc_ag{i}'] = area_df[f'cdr_in_bio_ag{i}'] / area_df[f'bio_area_ag{i}'] * 100
 
 area_df['SSP'] = area_df['scenario'].str.split('-').str[0]
 area_df['RCP'] = area_df['scenario'].str.split('-').str[1]
@@ -230,12 +224,12 @@ area_df.rename(columns={'year': 'Year'}, inplace=True)
 area_df['Year'] = area_df['Year'].astype(int)
 area_df['Model'] = f'{model}'
 
-area_df.to_csv(path / f'{model}_area_df_inc_group_temp_decline_{temperature_decline}.csv', index=False)
+area_df.to_csv(path / f'{model}_area_df_annex_group_temp_decline_{temperature_decline}.csv', index=False)
 
 # %% plot land allocation within refugia across scenarios
 
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
-area_df = load_and_concat('area_df_inc_group_temp_decline_not_allowed', paths)
+area_df = load_and_concat('area_df_annex_group_temp_decline_not_allowed', paths)
 
 rcps = ['19', '26', '45']  # specify RCPs that shall be plotted
 area_df = area_df.loc[area_df['RCP'].isin(rcps)]
@@ -247,7 +241,7 @@ rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
 all_rcps = sorted(area_df['RCP'].unique())
 
-fig, axes = plt.subplots(3, 5, figsize=(12, 4), sharex=True, sharey=True)
+fig, axes = plt.subplots(3, 3, figsize=(5, 6), sharex=True, sharey=True)
 sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 0])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc',
@@ -255,63 +249,52 @@ sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc',
 sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 0])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ig1',
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ag1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 1])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ig1',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ag1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 1])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ig1',
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ag1',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 1])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ig2',
+sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ag2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 2])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ig2',
+sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ag2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 2])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ig2',
+sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ag2',
              palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 2])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ig3',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 3])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ig3',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 3])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ig3',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 3])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ig4',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 4])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ig4',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 4])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ig4',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 4])
+handles, labels = axes[1, 0].get_legend_handles_labels()
+rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
 
-axes[1, 0].legend(bbox_to_anchor=(-0.05, 2.8), loc='upper left', ncols=12,
-                  columnspacing=0.8, handletextpad=0.1)
+new_labels = [rename_dict.get(label, label) for label in labels]
+
+axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.05, 2.8), loc='upper left',
+                  ncols=12, columnspacing=1, handletextpad=0.4)
 
 axes[0, 0].set_title('Global')
-axes[0, 1].set_title('Low')
-axes[0, 2].set_title('Lower middle')
-axes[0, 3].set_title('Upper middle')
-axes[0, 4].set_title('High')
+axes[0, 1].set_title('Annex I')
+axes[0, 2].set_title('Non-Annex I')
 
 axes[2, 0].set_xlabel('')
 axes[2, 1].set_xlabel('')
 axes[2, 2].set_xlabel('')
-axes[2, 3].set_xlabel('')
-axes[2, 4].set_xlabel('')
 
 axes[0, 0].set_ylabel('AIM')
 axes[1, 0].set_ylabel('GLOBIOM')
 axes[2, 0].set_ylabel('IMAGE')
 
 fig.supylabel(f'Remaining refugia allocated for {cdr_option} \n[%] (SSP1-SSP3 range)',
-              x=0.05, va='center', ha='center')
+              x=-0.03, va='center', ha='center')
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
-    ax.set_xticks([2020, 2060, 2100])
-    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.7)
+    ax.set_xticks([2020, 2100])
+    ax.set_yticks([0, 3, 6, 9, 12])
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
 
-plt.subplots_adjust(hspace=0.15)
-plt.subplots_adjust(wspace=0.4)
+plt.subplots_adjust(hspace=0.25)
+plt.subplots_adjust(wspace=0.5)
 sns.despine()
 plt.show()
 
