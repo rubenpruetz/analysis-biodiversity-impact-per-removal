@@ -636,35 +636,39 @@ for model in models:
             elif model == 'IMAGE':
                 path = path_image
 
-            cdr_land = f'{model}_{cdr_option}_SSP2-26_{year}.tif'  # change scenario if required
+            try:
+                cdr_land = f'{model}_{cdr_option}_SSP2-26_{year}.tif'  # change scenario if required
 
-            cdr = rioxarray.open_rasterio(path / cdr_land, masked=True)
-            tot_cdr_area = pos_val_summer(cdr, squeeze=True)
+                cdr = rioxarray.open_rasterio(path / cdr_land, masked=True)
+                tot_cdr_area = pos_val_summer(cdr, squeeze=True)
 
-            # CDR in biodiversity hotspots
-            cdr_repro = cdr.rio.reproject_match(hotspots)
-            cdr_in_hs = cdr_repro * hotspots
-            cdr_in_hs = pos_val_summer(cdr_in_hs, squeeze=True)
+                # CDR in biodiversity hotspots
+                cdr_repro = cdr.rio.reproject_match(hotspots)
+                cdr_in_hs = cdr_repro * hotspots
+                cdr_in_hs = pos_val_summer(cdr_in_hs, squeeze=True)
 
-            # CDR in biodiversity hotspots resilient to warming
-            cdr_repro = cdr.rio.reproject_match(hs_resil)
-            cdr_in_hs_res = cdr_repro * hs_resil
-            cdr_in_hs_res = pos_val_summer(cdr_in_hs_res, squeeze=True)
+                # CDR in biodiversity hotspots resilient to warming
+                cdr_repro = cdr.rio.reproject_match(hs_resil)
+                cdr_in_hs_res = cdr_repro * hs_resil
+                cdr_in_hs_res = pos_val_summer(cdr_in_hs_res, squeeze=True)
 
-            # CDR in warming resilient refugia
-            cdr_repro = cdr.rio.reproject_match(res_bio)
-            cdr_in_bio = cdr_repro * res_bio
-            cdr_in_bio = pos_val_summer(cdr_in_bio, squeeze=True)
+                # CDR in warming resilient refugia
+                cdr_repro = cdr.rio.reproject_match(res_bio)
+                cdr_in_bio = cdr_repro * res_bio
+                cdr_in_bio = pos_val_summer(cdr_in_bio, squeeze=True)
 
-            new_row = pd.DataFrame({'Model': [model],
-                                    'CDR_option': [cdr_option],
-                                    'Year': [year],
-                                    'CDR_land': [tot_cdr_area],
-                                    'CDR_in_hs': [cdr_in_hs],
-                                    'CDR_in_hs_res': [cdr_in_hs_res],
-                                    'CDR_in_bio': [cdr_in_bio]})
+                new_row = pd.DataFrame({'Model': [model],
+                                        'CDR_option': [cdr_option],
+                                        'Year': [year],
+                                        'CDR_land': [tot_cdr_area],
+                                        'CDR_in_hs': [cdr_in_hs],
+                                        'CDR_in_hs_res': [cdr_in_hs_res],
+                                        'CDR_in_bio': [cdr_in_bio]})
 
-            exclu_df = pd.concat([exclu_df, new_row], ignore_index=True)
+                exclu_df = pd.concat([exclu_df, new_row], ignore_index=True)
+            except Exception as e:
+                print(f'Error processing {model}: {e}')
+                continue
 
 # sum afforestation and BECCS values to get overall land intensive CDR values
 exclu_df_sum = exclu_df.groupby(['Model', 'Year'])[['CDR_land',
@@ -733,6 +737,9 @@ axes[1].set_xlabel('Exclusion of land within current \nbiodiversity hotspots for
 axes[2].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity refugia')
 axes[0].set_ylabel(f'Share of CDR land not available for allocation in SSP2-26 [%] \n(median and min-max range across models)',
                    fontsize=11)
+
+for ax in axes.flat:
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.7)
 
 plt.subplots_adjust(wspace=0.1)
 sns.despine()
