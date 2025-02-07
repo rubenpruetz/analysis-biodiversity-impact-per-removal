@@ -21,7 +21,6 @@ plt.rcParams.update({'figure.dpi': 600})
 
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
-path_ipl = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ipl_maps/01_Data')
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
@@ -290,7 +289,7 @@ fig.supylabel(f'Remaining refugia allocated for {cdr_option} \n[%] (SSP1-SSP3 ra
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
     ax.set_xticks([2020, 2100])
-    ax.set_yticks([0, 3, 6, 9, 12])
+    ax.set_yticks([0, 4, 8, 12, 16])
     ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
 
 plt.subplots_adjust(hspace=0.25)
