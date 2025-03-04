@@ -34,7 +34,7 @@ lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_model
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 
 # %% choose model to run the script with
-model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -394,12 +394,12 @@ for ssp in ssps:
         cbar_be = plt.colorbar(img_be, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
         cbar_ar.ax.set_position([0.35, 0, 0.1, 0.501])
         cbar_be.ax.set_position([0.576, 0, 0.1, 0.501])
-        cbar_ar.ax.tick_params(labelsize=8.6)
-        cbar_be.ax.tick_params(labelsize=8.6)
+        cbar_ar.ax.tick_params(labelsize=10)
+        cbar_be.ax.tick_params(labelsize=10)
         cbar_ar.set_label(f'Afforestation per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
-                          labelpad=1, fontsize=8.6)
+                          labelpad=1, fontsize=10.5)
         cbar_be.set_label(f'BECCS per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
-                          labelpad=1, fontsize=8.6)
+                          labelpad=1, fontsize=10.5)
         plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8.6, x=0.04, y=0.2,
                   ha='left')
         plt.show()
@@ -497,9 +497,9 @@ for ssp in wab_dict.keys():
                         boundaries=bounds, ticks=bounds,
                         spacing='proportional', extend='max')
     cbar.ax.set_position([0.346, -0.175, 0.334, 0.5])
-    cbar.ax.tick_params(labelsize=12)
+    cbar.ax.tick_params(labelsize=14)
     cbar.set_label(f'Share of national refugia covered by Afforestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
-                   fontsize=12.5)
+                   fontsize=15)
     plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.04, y=0.2, ha='left')
     plt.show()
 
@@ -864,8 +864,8 @@ legend_patches = [
     mpatches.Patch(color='gainsboro', label='Refugia'),
     mpatches.Patch(color='grey', label='Hotspot')]
 
-ax.legend(bbox_to_anchor=(0.093, 1), handles=legend_patches, ncols=4,
-          loc='lower left', fontsize=11, columnspacing=0.8, handletextpad=0.5,
+ax.legend(bbox_to_anchor=(0.15, 1), handles=legend_patches, ncols=4,
+          loc='lower left', fontsize=9.5, columnspacing=0.8, handletextpad=0.5,
           frameon=True)
 plt.show()
 
