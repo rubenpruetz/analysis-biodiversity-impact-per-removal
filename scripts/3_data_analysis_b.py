@@ -34,7 +34,7 @@ lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_model
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 
 # %% choose model to run the script with
-model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -183,8 +183,8 @@ def process_row(row):
 
         return result_dict
 
-    except:
-        print(f'Unsuccessful for file: {input_tif}')
+    except Exception as e:
+        print(f'Unsuccessful for file {input_tif}: {e}')
         return {
             'scenario': file_scenario,
             'mitigation_option': mitigation_option,
@@ -392,15 +392,16 @@ for ssp in ssps:
 
         cbar_ar = plt.colorbar(img_ar, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
         cbar_be = plt.colorbar(img_be, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
-        cbar_ar.ax.set_position([0.38, 0, 0.1, 0.501])
-        cbar_be.ax.set_position([0.546, 0, 0.1, 0.501])
-        cbar_ar.ax.tick_params(labelsize=7)
-        cbar_be.ax.tick_params(labelsize=7)
+        cbar_ar.ax.set_position([0.35, 0, 0.1, 0.501])
+        cbar_be.ax.set_position([0.576, 0, 0.1, 0.501])
+        cbar_ar.ax.tick_params(labelsize=8.6)
+        cbar_be.ax.tick_params(labelsize=8.6)
         cbar_ar.set_label(f'Afforestation per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
-                          labelpad=1, fontsize=7)
+                          labelpad=1, fontsize=8.6)
         cbar_be.set_label(f'BECCS per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
-                          labelpad=1, fontsize=7)
-        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=7, x=0.04, y=0.2, ha='left')
+                          labelpad=1, fontsize=8.6)
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8.6, x=0.04, y=0.2,
+                  ha='left')
         plt.show()
     except Exception as e:
         print(f'Error processing {ssp}: {e}')
@@ -496,10 +497,10 @@ for ssp in wab_dict.keys():
                         boundaries=bounds, ticks=bounds,
                         spacing='proportional', extend='max')
     cbar.ax.set_position([0.346, -0.175, 0.334, 0.5])
-    cbar.ax.tick_params(labelsize=11)
+    cbar.ax.tick_params(labelsize=12)
     cbar.set_label(f'Share of national refugia covered by Afforestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
-                   fontsize=11)
-    plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11, x=0.04, y=0.2, ha='left')
+                   fontsize=12.5)
+    plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.04, y=0.2, ha='left')
     plt.show()
 
 # %% plot ar and beccs for target removal across SSPs
@@ -706,19 +707,19 @@ for model, color in model_colors.items():
                   s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[2])
 
 model_patches = [mpatches.Patch(color=color, label=model) for model, color in model_colors.items()]
-legend1 = axes[0].legend(handles=model_patches, bbox_to_anchor=(1.6, 1.1),
+legend1 = axes[0].legend(handles=model_patches, bbox_to_anchor=(1.85, 1.1),
                          loc='upper left', ncols=5, columnspacing=0.8,
-                         handletextpad=0.5, frameon=False)
+                         handletextpad=0.5, frameon=False, fontsize=12)
 
 axes[0].legend(bbox_to_anchor=(-0.05, 1.1), loc='upper left', ncols=5,
-               columnspacing=0.8, handletextpad=0.5, frameon=False)
+               columnspacing=0.8, handletextpad=0.5, frameon=False, fontsize=12)
 axes[0].add_artist(legend1)
 
-axes[0].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity hotspots for conservation')
-axes[1].set_xlabel('Exclusion of land within current \nbiodiversity hotspots for conservation')
-axes[2].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity refugia')
+axes[0].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity hotspots for conservation', fontsize=11)
+axes[1].set_xlabel('Exclusion of land within current \nbiodiversity hotspots for conservation', fontsize=11)
+axes[2].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity refugia', fontsize=11)
 axes[0].set_ylabel(f'Share of CDR land not available for allocation in SSP2-26 [%] \n(median and min-max range across models)',
-                   fontsize=11)
+                   fontsize=12)
 
 for ax in axes.flat:
     ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.7)
@@ -863,10 +864,8 @@ legend_patches = [
     mpatches.Patch(color='gainsboro', label='Refugia'),
     mpatches.Patch(color='grey', label='Hotspot')]
 
-ax.legend(bbox_to_anchor=(0.1845, -0.1), handles=legend_patches, ncols=4,
-          loc='lower left', fontsize=8.5, columnspacing=0.8, handletextpad=0.5,
+ax.legend(bbox_to_anchor=(0.093, 1), handles=legend_patches, ncols=4,
+          loc='lower left', fontsize=11, columnspacing=0.8, handletextpad=0.5,
           frameon=True)
-
-plt.title('Model agreement on CDR deployment in SSP2-26 2100', fontsize=11)
 plt.show()
 

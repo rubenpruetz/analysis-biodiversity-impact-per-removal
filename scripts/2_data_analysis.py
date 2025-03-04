@@ -274,7 +274,7 @@ for removal_step in removal_steps:
 
         with rs.open(path / lower_tiff) as src_low:
             with rs.open(path / upper_tiff) as src_up:
-                # Read raster data and geospatial information
+                # read raster data and geospatial information
                 lower_tiff = src_low.read(1)
                 upper_tiff = src_up.read(1)
                 profile_lower = src_low.profile
@@ -351,7 +351,7 @@ for removal_step in removal_steps:
 
         with rs.open(path / lower_tiff) as src_low:
             with rs.open(path / upper_tiff) as src_up:
-                # Read raster data and geospatial information
+                # read raster data and geospatial information
                 lower_tiff = src_low.read(1)
                 upper_tiff = src_up.read(1)
                 profile_lower = src_low.profile
@@ -388,7 +388,7 @@ for index, row in beccs_land_non_zero.iterrows():
     output_name = f'{model}_BECCS_{scenario}_{year}.tif'
 
     with rs.open(path / input_name) as src_input:
-        # Read raster data and geospatial information
+        # read raster data and geospatial information
         input_tiff = src_input.read(1)
         profile_input = src_input.profile
 
