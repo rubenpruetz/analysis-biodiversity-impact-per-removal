@@ -26,7 +26,7 @@ path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 path_ag = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/unfccc_annex')
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
-path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/hotspots_2016_1')
+path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
@@ -594,7 +594,7 @@ for ssp in ssps:
         continue
 
 # %% estimate land CDR conflict with SDG 15.5 based on different criteria
-hotspots = rioxarray.open_rasterio(path_hotspots / 'hotspots_land_10arcmin.tif')
+hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif')
 res_bio = rioxarray.open_rasterio(path_uea / 'bio1.8_bin.tif', masked=True)  # change file if required
 
 # estimate hotspot areas that a resilient to selected warming
@@ -715,8 +715,8 @@ axes[0].legend(bbox_to_anchor=(-0.05, 1.1), loc='upper left', ncols=5,
                columnspacing=0.8, handletextpad=0.5, frameon=False, fontsize=12)
 axes[0].add_artist(legend1)
 
-axes[0].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity hotspots for conservation', fontsize=11)
-axes[1].set_xlabel('Exclusion of land within current \nbiodiversity hotspots for conservation', fontsize=11)
+axes[0].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity hotspots', fontsize=11)
+axes[1].set_xlabel('Exclusion of land within current \nbiodiversity hotspots', fontsize=11)
 axes[2].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity refugia', fontsize=11)
 axes[0].set_ylabel(f'Share of CDR land not available for allocation in SSP2-26 [%] \n(median and min-max range across models)',
                    fontsize=12)

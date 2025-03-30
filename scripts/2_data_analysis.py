@@ -19,14 +19,14 @@ path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodivers
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
-file_all = 'lookup_table_ar_be_files_all_models.csv'
+file_all = 'lookup_table_ar_bioenergy_files_all_models.csv'
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
-model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
