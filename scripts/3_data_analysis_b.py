@@ -233,63 +233,104 @@ area_df = load_and_concat('area_df_annex_group_temp_decline_not_allowed', paths)
 rcps = ['19', '26', '45']  # specify RCPs that shall be plotted
 area_df = area_df.loc[area_df['RCP'].isin(rcps)]
 
-cdr_option = 'BECCS'  # options: 'Afforestation' or 'BECCS'
-area_df = area_df.query('mitigation_option == @cdr_option')
-
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
 all_rcps = sorted(area_df['RCP'].unique())
 
-fig, axes = plt.subplots(3, 3, figsize=(5, 6), sharex=True, sharey=True)
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 0])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), hue_order=all_rcps, legend=True, ax=axes[1, 0])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 0])
+fig, axes = plt.subplots(3, 4, figsize=(9, 6), sharex=True, sharey=False)
+sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[0, 0])
+sns.lineplot(data=area_df.query('Model == "GLOBIOM" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc',  palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), hue_order=all_rcps, legend=True, ax=axes[1, 0])
+sns.lineplot(data=area_df.query('Model == "IMAGE" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[2, 0])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ag1',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 1])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ag1',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 1])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ag1',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 1])
+sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "BECCS"'),
+             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[0, 1])
+sns.lineplot(data=area_df.query('Model == "GLOBIOM" & mitigation_option == "BECCS"'),
+             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[1, 1])
+sns.lineplot(data=area_df.query('Model == "IMAGE" & mitigation_option == "BECCS"'),
+             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[2, 1])
 
-sns.lineplot(data=area_df.query('Model == "AIM"'), x='Year', y='alloc_perc_ag2',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[0, 2])
-sns.lineplot(data=area_df.query('Model == "GLOBIOM"'), x='Year', y='alloc_perc_ag2',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[1, 2])
-sns.lineplot(data=area_df.query('Model == "IMAGE"'), x='Year', y='alloc_perc_ag2',
-             palette=rcp_pal, hue='RCP', errorbar=('pi', 100), legend=False, ax=axes[2, 2])
+sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc_ag1', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[0, 2])
+sns.lineplot(data=area_df.query('Model == "GLOBIOM" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc_ag1', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[1, 2])
+sns.lineplot(data=area_df.query('Model == "IMAGE" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc_ag1', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[2, 2])
 
+sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[0, 3])
+sns.lineplot(data=area_df.query('Model == "GLOBIOM" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[1, 3])
+sns.lineplot(data=area_df.query('Model == "IMAGE" & mitigation_option == "Afforestation"'),
+             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             errorbar=('pi', 100), legend=False, ax=axes[2, 3])
 
 handles, labels = axes[1, 0].get_legend_handles_labels()
 rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
 
 new_labels = [rename_dict.get(label, label) for label in labels]
 
-axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.05, 2.8), loc='upper left',
-                  ncols=12, columnspacing=1, handletextpad=0.4)
+axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.05, 2.9), loc='upper left',
+                  ncols=3, columnspacing=1, handletextpad=0.4)
 
-axes[0, 0].set_title('Global')
-axes[0, 1].set_title('Annex I')
-axes[0, 2].set_title('Non-Annex I')
+axes[0, 0].set_title('Global\n(Afforestation)')
+axes[0, 1].set_title('Global\n(BECCS)')
+axes[0, 2].set_title('Annex I\n(Afforestation)')
+axes[0, 3].set_title('Non-Annex I\n(Afforestation)')
 
 axes[2, 0].set_xlabel('')
 axes[2, 1].set_xlabel('')
 axes[2, 2].set_xlabel('')
+axes[2, 3].set_xlabel('')
 
 axes[0, 0].set_ylabel('AIM')
 axes[1, 0].set_ylabel('GLOBIOM')
 axes[2, 0].set_ylabel('IMAGE')
 
-fig.supylabel(f'Remaining refugia allocated for {cdr_option} \n[%] (SSP1-SSP3 range)',
-              x=-0.03, va='center', ha='center')
+axes[0, 1].set_ylabel('')
+axes[1, 1].set_ylabel('')
+axes[2, 1].set_ylabel('')
+axes[0, 2].set_ylabel('')
+axes[1, 2].set_ylabel('')
+axes[2, 2].set_ylabel('')
+axes[0, 3].set_ylabel('')
+axes[1, 3].set_ylabel('')
+axes[2, 3].set_ylabel('')
+
+for ax in axes[:, 0]:
+    ax.set_yticks([0, 3, 6, 9, 12])
+    ax.set_ylim([0, 12])
+for ax in axes[:, 1]:
+    ax.set_yticks([0, 3, 6, 9, 12])
+    ax.set_ylim([0, 12])
+    ax.set_yticklabels([])
+for ax in axes[:, 2]:
+    ax.set_yticks([0, 4, 8, 12, 16])
+    ax.set_ylim([0, 16])
+for ax in axes[:, 3]:
+    ax.set_yticks([0, 4, 8, 12, 16])
+    ax.set_ylim([0, 16])
+    ax.set_yticklabels([])
+
+fig.supylabel(f'Share of remaining refugia allocated for CDR [%]\n(SSP1-SSP3 range as shading)',
+              x=0.03, va='center', ha='center')
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
     ax.set_xticks([2020, 2100])
-    ax.set_yticks([0, 4, 8, 12, 16])
     ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
 
 plt.subplots_adjust(hspace=0.25)
