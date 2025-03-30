@@ -503,96 +503,6 @@ for ssp in wab_dict.keys():
     plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.04, y=0.2, ha='left')
     plt.show()
 
-# %% plot ar and beccs for target removal across SSPs
-for ssp in ssps:
-    try:
-        ar = f'{model}_Afforestation_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2.tif'
-        be = f'{model}_BECCS_{ssp}-{rcp_lvl}_{removal_lvl}GtCO2.tif'
-
-        ar = rioxarray.open_rasterio(path / ar, masked=True)
-        be = rioxarray.open_rasterio(path / be, masked=True)
-
-        ar_km2 = ar * 1000000  # Mkm2 to km2
-        be_km2 = be * 1000000  # Mkm2 to km2
-
-        ar_bin = ar_km2.where(ar_km2.isnull(), 1)  # all=1 if not nodata
-        ar_bin.rio.to_raster(path / 'ar_bin_land.tif', driver='GTiff')
-        land_area_calculation(path, 'ar_bin_land.tif', 'ar_bin_land_km2.tif')
-        ar_max_land_area = rioxarray.open_rasterio(path / 'ar_bin_land_km2.tif',
-                                                masked=True)
-
-        be_bin = be_km2.where(be_km2.isnull(), 1)  # all=1 if not nodata
-        be_bin.rio.to_raster(path / 'be_bin_land.tif', driver='GTiff')
-        land_area_calculation(path, 'be_bin_land.tif', 'be_bin_land_km2.tif')
-        be_max_land_area = rioxarray.open_rasterio(path / 'be_bin_land_km2.tif',
-                                                masked=True)
-
-        ar_max_land_area = ar_max_land_area.rio.reproject_match(ar_km2)  # match
-        ar_km2 = ar_km2 / ar_max_land_area * 100  # calc share per cell
-
-        be_max_land_area = be_max_land_area.rio.reproject_match(be_km2)  # match
-        be_km2 = be_km2 / be_max_land_area * 100  # calc share per cell
-
-        perc_thres = 1  # threshold is less than x% per cell for visualization
-        ar_overlay = np.where(ar_km2 >= perc_thres, ar_km2, np.where(ar_km2 < perc_thres, np.nan, ar_km2))
-        ar_overlay = ar_km2.copy(data=ar_overlay)
-        be_overlay = np.where(be_km2 >= perc_thres, be_km2, np.where(be_km2 < perc_thres, np.nan, be_km2))
-        be_overlay = be_km2.copy(data=be_overlay)
-
-        ar_overlay.rio.to_raster(path / 'ar_overlay.tif', driver='GTiff')
-        be_overlay.rio.to_raster(path / 'be_overlay.tif', driver='GTiff')
-
-        ar = rs.open(path / 'ar_overlay.tif')
-        be = rs.open(path / 'be_overlay.tif')
-
-        data_ar = ar.read(1)
-        data_be = be.read(1)
-
-        # get the metadata
-        transform = ar.transform
-        extent_ar = [transform[2], transform[2] + transform[0] * ar.width,
-                     transform[5] + transform[4] * ar.height, transform[5]]
-
-        transform = be.transform
-        extent_be = [transform[2], transform[2] + transform[0] * be.width,
-                     transform[5] + transform[4] * be.height, transform[5]]
-
-        bounds_ar = [1, 5, 10, 20]
-        norm_ar = mpl.colors.BoundaryNorm(bounds_ar, mpl.cm.Greens.N, extend='max')
-        cmap_ar = cmr.get_sub_cmap('Greens', 0.2, 1)  # specify colormap subrange
-
-        bounds_be = [1, 5, 10, 20]
-        norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Reds.N, extend='max')
-        cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
-
-        fig = plt.figure(figsize=(10, 6))
-        ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
-        img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
-                           origin='upper', cmap=cmap_ar, norm=norm_ar, alpha=1)
-        ax.coastlines(linewidth=0.2)
-        ax.set_extent([-167, 167, -58, 90])
-        cbar_ar = plt.colorbar(img_ar, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
-        cbar_ar.ax.set_position([0.465, 0, 0.1, 0.33])
-        cbar_ar.ax.tick_params(labelsize=11)
-        cbar_ar.set_label('Afforestation share per grid cell [%]', labelpad=1, fontsize=11)
-        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11, x=0.04, y=0.2, ha='left')
-
-        fig = plt.figure(figsize=(10, 6))
-        ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
-        img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
-                           origin='upper', cmap=cmap_be, norm=norm_be)
-        ax.coastlines(linewidth=0.2)
-        ax.set_extent([-167, 167, -58, 90])
-        cbar_be = plt.colorbar(img_be, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
-        cbar_be.ax.set_position([0.465, 0, 0.1, 0.33])
-        cbar_be.ax.tick_params(labelsize=11)
-        cbar_be.set_label('BECCS share per grid cell [%]', labelpad=1, fontsize=11)
-        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=11, x=0.04, y=0.2, ha='left')
-        plt.show()
-    except Exception as e:
-        print(f'Error processing {ssp}: {e}')
-        continue
-
 # %% estimate land CDR conflict with SDG 15.5 based on different criteria
 hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif')
 res_bio = rioxarray.open_rasterio(path_uea / 'bio1.8_bin.tif', masked=True)  # change file if required
@@ -868,4 +778,3 @@ ax.legend(bbox_to_anchor=(0.15, 1), handles=legend_patches, ncols=4,
           loc='lower left', fontsize=9.5, columnspacing=0.8, handletextpad=0.5,
           frameon=True)
 plt.show()
-
