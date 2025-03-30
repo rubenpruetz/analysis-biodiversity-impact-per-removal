@@ -130,123 +130,15 @@ def pos_val_summer(arr, squeeze=True):
     return np.nansum(arr)  # Sum only non-NaN values
 
 # function to plot land-per-removal, removal, and land
-def process_data_and_plot(land_df, removal_df, cdr_option):
+def process_data(land_df, removal_df, cdr_option):
     land_per_removal = pd.merge(land_df, removal_df, on=['Scenario', 'Year'])
     land_per_removal['Land'] = land_per_removal['Land'] * 0.000001  # km2 to Mkm2
     land_per_removal.loc[land_per_removal['Land'] == 0, 'Removal'] = 0  # consistency rule: if land=0, removal=0
     land_per_removal['Mkm2/GtCO2'] = land_per_removal['Land'] / land_per_removal['Removal']
     land_per_removal['SSP'] = land_per_removal['Scenario'].str.split('-').str[0]
     land_per_removal['RCP'] = land_per_removal['Scenario'].str.split('-').str[1]
-    rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
-               '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
-    rcp_order = ['19', '26', '34', '45', '60', 'Baseline']
-    plot1 = sns.relplot(data=land_per_removal, x='Year', y='Mkm2/GtCO2', col='SSP', hue='RCP', linewidth=1.5, marker='o',
-                        kind='line', clip_on=False, palette=rcp_pal, hue_order=rcp_order, height=4, aspect=0.42)
-    plot1.set_xlabels('')
-    plot1.set_ylabels(f'{cdr_option} land-per-removal (Mkm$^2$/GtCO$_2$)')
-    plot1.fig.subplots_adjust(wspace=0.37)
-    for ax in plot1.axes.flat:
-        ax.set_xlim(2020, 2100)
-        ax.set_xticks([2020, 2060, 2100])
-
-    plot2 = sns.relplot(data=land_per_removal, x='Year', y='Removal', col='SSP', hue='RCP', linewidth=1.5, marker='o',
-                        kind='line',  clip_on=False,palette=rcp_pal, hue_order=rcp_order, height=4, aspect=0.42)
-    plot2.set_xlabels('')
-    plot2.set_ylabels(f'{cdr_option} removal (GtCO$_2$)')
-    plot2.fig.subplots_adjust(wspace=0.37)
-    for ax in plot2.axes.flat:
-        ax.set_xlim(2020, 2100)
-        ax.set_xticks([2020, 2060, 2100])
-
-    plot3 = sns.relplot(data=land_per_removal, x='Year', y='Land', col='SSP', hue='RCP', linewidth=1.5, marker='o',
-                        kind='line',  clip_on=False, palette=rcp_pal, hue_order=rcp_order, height=4, aspect=0.42)
-    plot3.set_xlabels('')
-    plot3.set_ylabels(f'{cdr_option} land (Mkm$^2$)')
-    plot3.fig.subplots_adjust(wspace=0.37)
-    for ax in plot3.axes.flat:
-        ax.set_xlim(2020, 2100)
-        ax.set_xticks([2020, 2060, 2100])
-
-    sns.move_legend(plot1, 'lower right', bbox_to_anchor=(0.85, 0.97), ncol=6, title='', columnspacing=0.8)
-    sns.move_legend(plot2, 'lower right', bbox_to_anchor=(0.85, 0.97), ncol=6, title='', columnspacing=0.8)
-    sns.move_legend(plot3, 'lower right', bbox_to_anchor=(0.85, 0.97), ncol=6, title='', columnspacing=0.8)
-    plt.show()
 
     return land_per_removal[['SSP', 'RCP', 'Year', 'Land', 'Removal', 'Mkm2/GtCO2']]
-
-# function to plot land-per-removal across models and ssps
-def process_mi_data_and_plot(land_df, removal_df, cdr_option, removal_type):
-    land_per_removal = pd.merge(land_df, removal_df, on=['Model', 'Scenario', 'Year'])
-    land_per_removal['Land'] = land_per_removal['Land'] * 0.000001  # km2 to Mkm2
-    land_per_removal.loc[land_per_removal['Land'] == 0, 'Removal'] = 0  # consistency rule: if land=0, removal=0
-    land_per_removal['Mkm2/GtCO2'] = land_per_removal['Land'] / land_per_removal['Removal']
-    land_per_removal['SSP'] = land_per_removal['Scenario'].str.split('-').str[0]
-    land_per_removal['RCP'] = land_per_removal['Scenario'].str.split('-').str[1]
-
-    rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
-               '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
-    all_rcps = sorted(land_per_removal['RCP'].unique())
-
-    fig, axes = plt.subplots(3, 3, figsize=(12, 8), sharex=True, sharey=True)
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP1" & Model == "GLOBIOM"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', hue_order=all_rcps, palette=rcp_pal,
-                 marker='o', legend=True, ax=axes[0, 0])
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP1" & Model == "AIM"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                 marker='o', legend=False, ax=axes[1, 0])
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP1" & Model == "IMAGE"'), x='Year',
-                y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                marker='o', legend=False, ax=axes[2, 0])
-
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP2" & Model == "GLOBIOM"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                 marker='o', legend=False, ax=axes[0, 1])
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP2" & Model == "AIM"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                 marker='o', legend=False, ax=axes[1, 1])
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP2" & Model == "IMAGE"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                 marker='o', legend=False, ax=axes[2, 1])
-
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP3" & Model == "GLOBIOM"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                 marker='o', legend=False, ax=axes[0, 2])
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP3" & Model == "AIM"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                 marker='o', legend=False, ax=axes[1, 2])
-    sns.lineplot(data=land_per_removal.query('SSP == "SSP3" & Model == "IMAGE"'), x='Year',
-                 y='Mkm2/GtCO2', hue='RCP', palette=rcp_pal,
-                 marker='o', legend=False, ax=axes[2, 2])
-
-    axes[0, 0].legend(bbox_to_anchor=(-0.05, 1.35), loc='upper left', ncols=6,
-                      columnspacing=2, handletextpad=0.5)
-
-    axes[0, 0].set_title('SSP1')
-    axes[0, 1].set_title('SSP2')
-    axes[0, 2].set_title('SSP3')
-
-    axes[2, 0].set_xlabel('')
-    axes[2, 1].set_xlabel('')
-    axes[2, 2].set_xlabel('')
-
-    axes[0, 0].set_ylabel('GLOBIOM')
-    axes[1, 0].set_ylabel('AIM')
-    axes[2, 0].set_ylabel('IMAGE')
-
-    fig.supxlabel('')
-    if removal_type == 'cumulative':
-        fig.supylabel(f'{cdr_option} Land-per-cumulative removal (Mkm$^2$/GtCO$_2$)', x=0.05)
-    else:
-        fig.supylabel(f'{cdr_option} Land-per-removal (Mkm$^2$/GtCO$_2$)', x=0.05)
-
-    for ax in axes.flat:
-        ax.set_xlim(2020, 2100)
-        ax.set_xticks([2020, 2060, 2100])
-
-    plt.subplots_adjust(hspace=0.15)
-    plt.subplots_adjust(wspace=0.15)
-    sns.despine()
-    plt.show()
 
 # function to interpolate between available years to estimate cumulative removal
 def cum_cdr_calc(cdr_df):

@@ -1,16 +1,9 @@
 
 # import libraries
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import rioxarray
 import rasterio as rs
-import cartopy.crs as ccrs
-from cartopy.io.shapereader import Reader
-import cmasher as cmr
 from required_functions import *
-import shapefile
 from pathlib import Path
 plt.rcParams.update({'figure.dpi': 600})
 
@@ -26,7 +19,7 @@ lookup_names = pd.read_csv(path_globiom / 'lookup_table_ssp-rcp_names.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% choose model to run the script with
-model = 'AIM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -141,86 +134,9 @@ beccs_land = pd.merge(be_land[['Scenario', 'Year', 'Land', 'Variable']],
 
 beccs_land['Land'] = beccs_land['Land'] * beccs_land['Fraction']
 
-# %% compute and plot land-per-removal, removal, and land for AR and BECCS
-lpr_ar = process_data_and_plot(ar_land, ar_removal, 'AR')  # plot AR data
-lpr_beccs = process_data_and_plot(beccs_land, beccs_removal, 'BECCS')  # plot BECCS data
-
-# save dfs per model
-ar_land['Model'] = model
-ar_removal['Model'] = model
-beccs_land['Model'] = model
-beccs_removal['Model'] = model
-
-ar_land.to_csv(path / f'{model}_ar_land.csv', index=False)
-ar_removal.to_csv(path / f'{model}_ar_removal.csv', index=False)
-beccs_land.to_csv(path / f'{model}_beccs_land.csv', index=False)
-beccs_removal.to_csv(path / f'{model}_beccs_removal.csv', index=False)
-
-# %% compute and plot land per cumulative removal
-
-# use dfs for which consistency rule already applies: if land=0, removal=0
-ar_df = lpr_ar[['SSP', 'RCP', 'Year', 'Removal']].copy()
-ar_df['Scenario'] = ar_df['SSP'] + '-' + ar_df['RCP']
-ar_df['Variable'] = 'AR removal'
-ar_cum = ar_df.pivot_table(index=['Scenario', 'Variable'],
-                           columns='Year', values='Removal').reset_index()
-ar_cum.columns = ar_cum.columns.astype(str)
-
-beccs_df = lpr_beccs[['SSP', 'RCP', 'Year', 'Removal']].copy()
-beccs_df['Scenario'] = beccs_df['SSP'] + '-' + beccs_df['RCP']
-beccs_df['Variable'] = 'BECCS removal'
-beccs_cum = beccs_df.pivot_table(index=['Scenario', 'Variable'],
-                                 columns='Year', values='Removal').reset_index()
-beccs_cum.columns = beccs_cum.columns.astype(str)
-
-# interpolate between available years to estimate cumulative removal
-ar_cum = cum_cdr_calc(ar_cum)
-beccs_cum = cum_cdr_calc(beccs_cum)
-
-# calculate additional CDR land from base year (2020) onwards
-ar_add = ar_land.copy()
-base = ar_add[ar_add['Year'] == 2020].set_index(['Scenario'])['Land']
-ar_add['Land'] = ar_add.apply(lambda row: row['Land'] - base.get(row['Scenario'], 0), axis=1)
-ar_add['Land'] = ar_add['Land'].clip(lower=0)  # set negative values to zero (if less afforested land than in base year)
-
-beccs_add = beccs_land.copy()
-base = beccs_add[beccs_add['Year'] == 2020].set_index(['Scenario'])['Land']
-beccs_add['Land'] = beccs_add.apply(lambda row: row['Land'] - base.get(row['Scenario'], 0), axis=1)
-beccs_add['Land'] = beccs_add['Land'].clip(lower=0)  # set negative values to zero (if less BECCS land than in base year)
-
-# plot land per cumulative removal, cumulative removal, and land for AR and BECCS
-lpr_ar_cum = process_data_and_plot(ar_add, ar_cum, 'AR')  # plot AR data
-lpr_beccs_cum = process_data_and_plot(beccs_add, beccs_cum, 'BECCS')  # plot BECCS data
-
-# save dfs per model
-ar_add['Model'] = model
-ar_cum['Model'] = model
-beccs_add['Model'] = model
-beccs_cum['Model'] = model
-
-ar_add.to_csv(path / f'{model}_ar_add.csv', index=False)
-ar_cum.to_csv(path / f'{model}_ar_cum.csv', index=False)
-beccs_add.to_csv(path / f'{model}_beccs_add.csv', index=False)
-beccs_cum.to_csv(path / f'{model}_beccs_cum.csv', index=False)
-
-# %% intercomparison plot
-paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
-
-tot_ar_land = load_and_concat('ar_land', paths)
-tot_ar_removal = load_and_concat('ar_removal', paths)
-tot_ar_add = load_and_concat('ar_add', paths)
-tot_ar_cum = load_and_concat('ar_cum', paths)
-
-tot_beccs_land = load_and_concat('beccs_land', paths)
-tot_beccs_removal = load_and_concat('beccs_removal', paths)
-tot_beccs_add = load_and_concat('beccs_add', paths)
-tot_beccs_cum = load_and_concat('beccs_cum', paths)
-
-process_mi_data_and_plot(tot_ar_land, tot_ar_removal, 'AR', 'non-cumulative')  # plot AR data
-process_mi_data_and_plot(tot_beccs_land, tot_beccs_removal, 'BECCS', 'non-cumulative')  # plot BECCS data
-
-process_mi_data_and_plot(tot_ar_add, tot_ar_cum, 'AR', 'cumulative')  # plot AR data
-process_mi_data_and_plot(tot_beccs_add, tot_beccs_cum, 'BECCS', 'cumulative')  # plot BECCS data
+# %% compute land-per-removal, removal, and land for AR and BECCS
+lpr_ar = process_data(ar_land, ar_removal, 'AR')  # plot AR data
+lpr_beccs = process_data(beccs_land, beccs_removal, 'BECCS')  # plot BECCS data
 
 # %% impact-per-removal analysis (afforestation)
 
