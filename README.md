@@ -11,6 +11,7 @@ The project is composed of the following Python scripts:
 # Overview of project lookup tables
 The project contains the following lookup tables that are required to run the Python scripts:
 - lookup_table_uea_resample_20km.csv
+- lookup_table_uea_interpol_20km.csv
 - lookup_table_ssp-rcp_names.csv:
 - lookup_table_aim_nc_files.csv
 - lookup_table_globiom_nc_files.csv
