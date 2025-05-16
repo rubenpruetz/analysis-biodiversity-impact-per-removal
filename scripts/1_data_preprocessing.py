@@ -49,7 +49,7 @@ for index, row in lookup_resample.iterrows():  # use lookup to resample uea file
     with rs.open(path_uea / output_name, 'w', **profile) as dst:
         dst.write(tiff.astype(profile['dtype']))
 
-# linearily interpolate warmig level between rasters
+# linearily interpolate warming level between rasters
 inter_steps = 4  # number of desired interpolation steps
 
 for index, row in lookup_interpol.iterrows():  # use lookup to interpolate uea files
