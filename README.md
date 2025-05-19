@@ -16,6 +16,7 @@ The project contains the following lookup tables that are required to run the Py
 - lookup_table_aim_nc_files.csv
 - lookup_table_globiom_nc_files.csv
 - lookup_table_image_nc_files.csv
+- lookup_table_image_nc_files_preprocessing.csv
 - lookup_table_ar_bioenergy_files_all_models.csv
 - lookup_table_ssp-rcp_names.csv
 - lookup_table_ar_beccs_files_all_models.csv
