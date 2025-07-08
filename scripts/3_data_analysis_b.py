@@ -29,7 +29,6 @@ path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
-energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_models.csv')
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 

@@ -7,7 +7,9 @@ from pathlib import Path
 plt.rcParams.update({'figure.dpi': 600})
 
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
+path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
+energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # %% get AR6 land cover data for SSP-RCP combinations
 years = ['2010', '2020', '2030', '2040', '2050', '2060', '2070', '2080',
@@ -20,8 +22,8 @@ variables = ['Land Cover|Built-up Area', 'Land Cover|Cropland',
              'Land Cover|Cropland|Energy Crops', 'Land Cover|Forest',
              'Land Cover|Pasture']
 variables_adjust = ['Land Cover|Built-up Area', 'Other cropland',
-             'Land Cover|Cropland|Energy Crops', 'Land Cover|Forest',
-             'Land Cover|Pasture']
+                    'Land Cover|Cropland|Energy Crops', 'Land Cover|Forest',
+                    'Land Cover|Pasture']
 
 lc_data = ar6_db.loc[ar6_db['Variable'].isin(variables)]
 lc_data = lc_data.loc[lc_data['Model'].isin(models)]
