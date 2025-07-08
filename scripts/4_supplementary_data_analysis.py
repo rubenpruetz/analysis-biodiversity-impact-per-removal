@@ -22,12 +22,12 @@ variables = ['Land Cover|Built-up Area', 'Land Cover|Cropland',
              'Land Cover|Cropland|Energy Crops', 'Land Cover|Forest',
              'Land Cover|Pasture']
 variables_adjust = ['Land Cover|Built-up Area', 'Other cropland',
-                    'Land Cover|Cropland|Energy Crops', 'Land Cover|Forest',
-                    'Land Cover|Pasture']
+                    'Land Cover|Forest', 'Energy cropland (for BECCS)',
+                    'Energy cropland (not for BECCS)', 'Land Cover|Pasture']
 
+ar6_db = ar6_db.loc[ar6_db['Model'].isin(models)]
+ar6_db = ar6_db.loc[ar6_db['Scenario'].isin(scenarios)]
 lc_data = ar6_db.loc[ar6_db['Variable'].isin(variables)]
-lc_data = lc_data.loc[lc_data['Model'].isin(models)]
-lc_data = lc_data.loc[lc_data['Scenario'].isin(scenarios)]
 lc_data = lc_data[['Model', 'Scenario', 'Variable'] + years].copy()
 
 lc_data = pd.melt(lc_data, id_vars=['Model', 'Scenario', 'Variable'],
@@ -47,35 +47,59 @@ cropland_other = cropland_other[['Model', 'Scenario', 'Variable', 'Year',
                                  'Value']].copy()
 lc_data = pd.concat([lc_data, cropland_other], axis=0)
 
+# distinguish between energy cropland with and without CCS
+bioeng_ncss = ar6_db.query('Variable == "Primary Energy|Biomass|Modern|w/o CCS"').reset_index(drop=True)
+bioeng_ncss[years] = bioeng_ncss[years].round(2)
+bioeng_tot = ar6_db.query('Variable == "Primary Energy|Biomass"').reset_index(drop=True)
+bioeng_tot[years] = bioeng_tot[years].round(2)
+bioeng_wccs = bioeng_tot[['Model', 'Scenario']].copy()
+bioeng_wccs[years] = 1 - (bioeng_ncss[years] / bioeng_tot[years])
+bioeng_wccs = pd.melt(bioeng_wccs, id_vars=['Model', 'Scenario'],
+                      value_vars=years, var_name='Year',
+                      value_name='CCS_share')
+
+cropland_eng_css = cropland_energy.copy()
+cropland_eng_css = pd.merge(cropland_eng_css, bioeng_wccs,
+                               on=['Model', 'Scenario', 'Year'])
+cropland_eng_css['Value'] = cropland_eng_css['Value'] * bioeng_wccs['CCS_share']
+cropland_eng_css['Variable'] = 'Energy cropland (for BECCS)'
+
+cropland_eng_nocss = cropland_energy.copy()
+cropland_eng_nocss = pd.merge(cropland_eng_nocss, bioeng_wccs,
+                                 on=['Model', 'Scenario', 'Year'])
+cropland_eng_nocss['Value'] = cropland_eng_nocss['Value'] * (1 - bioeng_wccs['CCS_share'])
+cropland_eng_nocss['Variable'] = 'Energy cropland (not for BECCS)'
+
+lc_data = pd.concat([lc_data, cropland_eng_css, cropland_eng_nocss], axis=0)
+
 # calculate change from base year (2010)
 lc_data = lc_data.loc[lc_data['Variable'].isin(variables_adjust)]
 lc_2010 = lc_data.query('Year == "2010"').reset_index(drop=True)
-lc_data = pd.merge(lc_data, lc_2010,
-                   on=['Model', 'Scenario', 'Variable'],
+lc_data = pd.merge(lc_data, lc_2010, on=['Model', 'Scenario', 'Variable'],
                    suffixes=['', '_2010'])
 
 lc_data['Change'] = lc_data['Value'] - lc_data['Value_2010']
 
-# plot change in land cover
+# plot supplementary figure on land use changes based on AR6 Scenarios Database
 lc_data['SSP'] = lc_data['Scenario'].str.split('-').str[0]
 lc_data['RCP'] = lc_data['Scenario'].str.split('-').str[1]
 lc_data['Year'] = lc_data['Year'].astype(int)
 
 lc_data.replace({'Model': {'AIM/CGE 2.0': 'AIM',
-                            'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
-                            'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
+                           'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
+                           'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
 
 lc_data.replace({'Variable': {'Land Cover|Built-up Area': 'Built-up',
-                              'Land Cover|Cropland|Energy Crops': 'Energy cropland',
                               'Land Cover|Forest': 'Forest',
                               'Land Cover|Pasture': 'Pasture'}},
                 inplace=True)
 
-var_pal = {'Built-up': 'red',
-           'Energy cropland': 'blue',
-           'Forest': 'green',
+var_pal = {'Built-up': 'dimgrey',
+           'Energy cropland (for BECCS)': 'orangered',
+           'Energy cropland (not for BECCS)': 'blue',
+           'Forest': 'forestgreen',
            'Other cropland': 'brown',
-           'Pasture': 'orange'}
+           'Pasture': 'gold'}
 all_vars = sorted(lc_data['Variable'].unique())
 
 fig, axes = plt.subplots(3, 3, figsize=(9, 9), sharex=True, sharey=True)
@@ -126,7 +150,7 @@ axes[0, 0].set_title('1.5 °C')
 axes[0, 1].set_title('2 °C')
 axes[0, 2].set_title('Current Policies')
 
-axes[0, 0].legend(bbox_to_anchor=(-0.05, 1.3), loc='upper left', ncols=5, 
+axes[0, 0].legend(bbox_to_anchor=(-0.05, 1.43), loc='upper left', ncols=3,
                   columnspacing=1, handletextpad=0.4, fontsize=11)
 
 fig.supylabel(f'Land cover change from 2010 [mio.ha] (SSP1-SSP3 range as shading)',
