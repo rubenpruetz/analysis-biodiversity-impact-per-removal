@@ -58,6 +58,8 @@ cdr['Year'] = pd.to_numeric(cdr['Year'])
 
 ar_removal = cdr[cdr['Variable'] == ar_variable]
 ar_removal['Variable'] = 'AR removal'
+ar_removal['Model'] = model
+ar_removal.to_csv(path /f'{model}_ar_removal.csv', index=False)
 
 # %% STEP2: calculate afforestation land per scenario in for 2020-2100
 # filter afforestation related files from lookup table
@@ -90,6 +92,8 @@ beccs_removal = pd.merge(beccs_removal,
                          ec_share[['Scenario', 'Year', 'Share_energy_crops']],
                          on=['Scenario', 'Year'])
 beccs_removal['Removal'] = beccs_removal['Removal'] * beccs_removal['Share_energy_crops']
+beccs_removal['Model'] = model
+beccs_removal.to_csv(path /f'{model}_beccs_removal.csv', index=False)
 
 # calculate share of bioenergy for BECCS based on biomass with/without CCS
 bioeng_ncss = ar6_db.query('Variable == "Primary Energy|Biomass|Modern|w/o CCS"').reset_index(drop=True)

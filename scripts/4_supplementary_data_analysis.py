@@ -245,3 +245,6 @@ sns.despine()
 plt.show()
 
 # %%
+paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
+ar_removal = load_and_concat('ar_removal', paths)
+beccs_removal = load_and_concat('beccs_removal', paths)
