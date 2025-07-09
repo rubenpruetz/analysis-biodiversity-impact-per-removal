@@ -318,8 +318,7 @@ lc_data.replace({'Model': {'AIM/CGE 2.0': 'AIM',
 
 lc_data.replace({'Variable': {'Land Cover|Built-up Area': 'Built-up',
                               'Land Cover|Forest': 'Forest',
-                              'Land Cover|Pasture': 'Pasture'}},
-                inplace=True)
+                              'Land Cover|Pasture': 'Pasture'}}, inplace=True)
 
 var_pal = {'Built-up': 'dimgrey',
            'Energy cropland (for BECCS)': 'orangered',

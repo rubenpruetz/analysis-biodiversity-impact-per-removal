@@ -140,31 +140,6 @@ def process_data(land_df, removal_df, cdr_option):
 
     return land_per_removal[['SSP', 'RCP', 'Year', 'Land', 'Removal', 'Mkm2/GtCO2']]
 
-# function to interpolate between available years to estimate cumulative removal
-def cum_cdr_calc(cdr_df):
-    numeric_cols20 = [str(year) for year in range(2020, 2110, 10)]
-    year_cols_all = [str(year) for year in range(2020, 2101)]
-    cdr = cdr_df.reindex(columns=['Scenario', 'Variable'] + year_cols_all, fill_value=None)
-    cdr.loc[pd.isna(cdr['2020']), '2020'] = 0
-    cdr.set_index(['Scenario', 'Variable'], inplace=True)
-    cdr.interpolate(method='linear', inplace=True, axis=1)
-    cdr.reset_index(inplace=True)
-    cum_cdr = cdr[['Scenario', 'Variable']].copy()
-
-    for year in range(2020, 2101):
-        current_year = str(year)
-        year_range = [str(year) for year in range(2020, year + 1)]
-        cum_cdr[current_year] = cdr[year_range].sum(axis=1)
-
-    cum_cdr = cum_cdr[['Scenario', 'Variable'] + numeric_cols20].copy()
-
-    cum_cdr = pd.melt(cum_cdr, id_vars=['Scenario', 'Variable'], var_name='Year',
-                      value_vars=numeric_cols20, value_name='Removal')
-
-    cum_cdr['Year'] = cum_cdr['Year'].astype(int)
-
-    return cum_cdr
-
 # function to concat multiple dfs across models
 def load_and_concat(suffix, paths):
     dfs = [pd.read_csv(_path / f'{i}_{suffix}.csv') for i, _path in paths.items()]
