@@ -337,7 +337,10 @@ plt.subplots_adjust(wspace=0.5)
 sns.despine()
 plt.show()
 
-# %% maps of refugia land impact of CDR across SSP1-3 for a certain warming level
+# %% plot avoided warming-related refugia loss due CDR
+
+
+# %% maps refugia land impact of CDR across SSP1-3 for a certain warming level
 
 rcp_lvl = '26'  # select RCP level (without dot)
 ssps = ['SSP1', 'SSP2', 'SSP3']

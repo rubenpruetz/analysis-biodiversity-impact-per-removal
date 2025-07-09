@@ -135,8 +135,8 @@ beccs_land = pd.merge(be_land[['Scenario', 'Year', 'Land', 'Variable']],
 beccs_land['Land'] = beccs_land['Land'] * beccs_land['Fraction']
 
 # %% compute land-per-removal, removal, and land for AR and BECCS
-lpr_ar = process_data(ar_land, ar_removal, 'AR')  # plot AR data
-lpr_beccs = process_data(beccs_land, beccs_removal, 'BECCS')  # plot BECCS data
+lpr_ar = process_data(ar_land, ar_removal, 'AR')
+lpr_beccs = process_data(beccs_land, beccs_removal, 'BECCS')
 
 # %% impact-per-removal analysis (afforestation)
 

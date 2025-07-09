@@ -161,6 +161,7 @@ lc_data = pd.merge(lc_data, lc_2010, on=['Model', 'Scenario', 'Variable'],
                    suffixes=['', '_2010'])
 
 lc_data['Change'] = lc_data['Value'] - lc_data['Value_2010']
+lc_data['Change'] = lc_data['Change'] / 100  # from ha to km2
 
 # plot supplementary figure on land use changes based on AR6 Scenarios Database
 lc_data['SSP'] = lc_data['Scenario'].str.split('-').str[0]
@@ -235,8 +236,8 @@ axes[0, 2].set_title('Current Policies')
 axes[0, 0].legend(bbox_to_anchor=(-0.05, 1.43), loc='upper left', ncols=3,
                   columnspacing=1, handletextpad=0.4, fontsize=11)
 
-fig.supylabel(f'Land cover change from 2010 [mio.ha] (SSP1-SSP3 range as shading)',
-              x=0.02, va='center', ha='center')
+fig.supylabel(f'Land cover change from 2010 [Mkm$^2$] (SSP1-SSP3 range as shading)',
+              x=0.03, va='center', ha='center')
 
 plt.subplots_adjust(hspace=0.1)
 plt.subplots_adjust(wspace=0.25)
