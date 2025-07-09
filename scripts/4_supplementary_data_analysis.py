@@ -17,6 +17,19 @@ path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversit
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
+# define lists
+years = ['2010', '2020', '2030', '2040', '2050', '2060', '2070', '2080',
+         '2090', '2100']
+models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1']
+scenarios = ['SSP1-19', 'SSP1-26', 'SSP1-45', 'SSP2-19', 'SSP2-26', 'SSP2-45',
+             'SSP3-45']
+variables = ['Land Cover|Built-up Area', 'Land Cover|Cropland',
+             'Land Cover|Cropland|Energy Crops', 'Land Cover|Forest',
+             'Land Cover|Pasture']
+variables_adjust = ['Land Cover|Built-up Area', 'Other cropland',
+                    'Land Cover|Forest', 'Energy cropland (for BECCS)',
+                    'Energy cropland (not for BECCS)', 'Land Cover|Pasture']
+
 # %% plot supplementary figure on BECCS in Annex-I and Non-Annex I refugia
 
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
@@ -93,20 +106,151 @@ plt.subplots_adjust(wspace=0.2)
 sns.despine()
 plt.show()
 
+# %% plot supplementary figure on removal per CDR option, scenario and model
+paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
+ar_removal = load_and_concat('ar_removal', paths)
+ar_removal['SSP'] = ar_removal['Scenario'].str.split('-').str[0]
+ar_removal['RCP'] = ar_removal['Scenario'].str.split('-').str[1]
+ar_removal = ar_removal.loc[ar_removal['Scenario'].isin(scenarios)]
+
+beccs_removal = load_and_concat('beccs_removal', paths)
+beccs_removal['SSP'] = beccs_removal['Scenario'].str.split('-').str[0]
+beccs_removal['RCP'] = beccs_removal['Scenario'].str.split('-').str[1]
+beccs_removal = beccs_removal.loc[beccs_removal['Scenario'].isin(scenarios)]
+
+rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
+           '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
+all_rcps = sorted(ar_removal['RCP'].unique())
+
+# plot removal via forestation
+fig, axes = plt.subplots(3, 3, figsize=(6, 9), sharex=True, sharey=True)
+sns.lineplot(data=ar_removal.query('Model == "AIM" & SSP == "SSP1"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 0])
+sns.lineplot(data=ar_removal.query('Model == "GLOBIOM" & SSP == "SSP1"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=True, ax=axes[1, 0])
+sns.lineplot(data=ar_removal.query('Model == "IMAGE" & SSP == "SSP1"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 0])
+
+sns.lineplot(data=ar_removal.query('Model == "AIM" & SSP == "SSP2"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 1])
+sns.lineplot(data=ar_removal.query('Model == "GLOBIOM" & SSP == "SSP2"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 1])
+sns.lineplot(data=ar_removal.query('Model == "IMAGE" & SSP == "SSP2"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 1])
+
+sns.lineplot(data=ar_removal.query('Model == "AIM" & SSP == "SSP3"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 2])
+sns.lineplot(data=ar_removal.query('Model == "GLOBIOM" & SSP == "SSP3"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 2])
+sns.lineplot(data=ar_removal.query('Model == "IMAGE" & SSP == "SSP3"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 2])
+
+for ax in axes.flat:
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_xlim(2020, 2100)
+    ax.set_xticks([2010, 2060, 2100])
+    ax.set_ylim(0, 5)
+    ax.tick_params(axis='x', labelsize=11)
+    ax.tick_params(axis='y', labelsize=11)
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
+
+axes[0, 0].set_ylabel('AIM', fontsize=11)
+axes[1, 0].set_ylabel('GLOBIOM', fontsize=11)
+axes[2, 0].set_ylabel('IMAGE', fontsize=11)
+
+axes[0, 0].set_title('SSP1')
+axes[0, 1].set_title('SSP2')
+axes[0, 2].set_title('SSP3')
+
+handles, labels = axes[1, 0].get_legend_handles_labels()
+rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
+new_labels = [rename_dict.get(label, label) for label in labels]
+axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.05, 2.4), ncols=3,
+                  loc='upper left', columnspacing=1, handletextpad=0.4)
+
+fig.supylabel(f'CO$_2$ removal via forestation [GtCO$_2$]',
+              x=0.04, va='center', ha='center')
+
+plt.subplots_adjust(hspace=0.1)
+plt.subplots_adjust(wspace=0.4)
+sns.despine()
+plt.show()
+
+# plot removal via BECCS
+fig, axes = plt.subplots(3, 3, figsize=(6, 9), sharex=True, sharey=True)
+sns.lineplot(data=beccs_removal.query('Model == "AIM" & SSP == "SSP1"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 0])
+sns.lineplot(data=beccs_removal.query('Model == "GLOBIOM" & SSP == "SSP1"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=True, ax=axes[1, 0])
+sns.lineplot(data=beccs_removal.query('Model == "IMAGE" & SSP == "SSP1"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 0])
+
+sns.lineplot(data=beccs_removal.query('Model == "AIM" & SSP == "SSP2"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 1])
+sns.lineplot(data=beccs_removal.query('Model == "GLOBIOM" & SSP == "SSP2"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 1])
+sns.lineplot(data=beccs_removal.query('Model == "IMAGE" & SSP == "SSP2"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 1])
+
+sns.lineplot(data=beccs_removal.query('Model == "AIM" & SSP == "SSP3"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 2])
+sns.lineplot(data=beccs_removal.query('Model == "GLOBIOM" & SSP == "SSP3"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 2])
+sns.lineplot(data=beccs_removal.query('Model == "IMAGE" & SSP == "SSP3"'),
+             x='Year', y='Removal', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 2])
+
+for ax in axes.flat:
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_xlim(2020, 2100)
+    ax.set_xticks([2010, 2060, 2100])
+    ax.set_ylim(0, 12)
+    ax.tick_params(axis='x', labelsize=11)
+    ax.tick_params(axis='y', labelsize=11)
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
+
+axes[0, 0].set_ylabel('AIM', fontsize=11)
+axes[1, 0].set_ylabel('GLOBIOM', fontsize=11)
+axes[2, 0].set_ylabel('IMAGE', fontsize=11)
+
+axes[0, 0].set_title('SSP1')
+axes[0, 1].set_title('SSP2')
+axes[0, 2].set_title('SSP3')
+
+handles, labels = axes[1, 0].get_legend_handles_labels()
+rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
+new_labels = [rename_dict.get(label, label) for label in labels]
+axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.05, 2.4), ncols=3,
+                  loc='upper left', columnspacing=1, handletextpad=0.4)
+
+fig.supylabel(f'CO$_2$ removal via crop-based BECCS [GtCO$_2$]',
+              x=0.022, va='center', ha='center')
+
+plt.subplots_adjust(hspace=0.1)
+plt.subplots_adjust(wspace=0.4)
+sns.despine()
+plt.show()
+
 # %% get AR6 land cover data for SSP-RCP combinations
-years = ['2010', '2020', '2030', '2040', '2050', '2060', '2070', '2080',
-         '2090', '2100']
-
-models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1']
-scenarios = ['SSP1-19', 'SSP1-26', 'SSP1-45', 'SSP2-19', 'SSP2-26', 'SSP2-45',
-             'SSP3-45']
-variables = ['Land Cover|Built-up Area', 'Land Cover|Cropland',
-             'Land Cover|Cropland|Energy Crops', 'Land Cover|Forest',
-             'Land Cover|Pasture']
-variables_adjust = ['Land Cover|Built-up Area', 'Other cropland',
-                    'Land Cover|Forest', 'Energy cropland (for BECCS)',
-                    'Energy cropland (not for BECCS)', 'Land Cover|Pasture']
-
 ar6_db = ar6_db.loc[ar6_db['Model'].isin(models)]
 ar6_db = ar6_db.loc[ar6_db['Scenario'].isin(scenarios)]
 lc_data = ar6_db.loc[ar6_db['Variable'].isin(variables)]
@@ -243,8 +387,3 @@ plt.subplots_adjust(hspace=0.1)
 plt.subplots_adjust(wspace=0.25)
 sns.despine()
 plt.show()
-
-# %%
-paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
-ar_removal = load_and_concat('ar_removal', paths)
-beccs_removal = load_and_concat('beccs_removal', paths)
