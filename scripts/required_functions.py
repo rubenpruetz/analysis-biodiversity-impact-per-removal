@@ -145,6 +145,21 @@ def load_and_concat(suffix, paths):
     dfs = [pd.read_csv(_path / f'{i}_{suffix}.csv') for i, _path in paths.items()]
     return pd.concat(dfs, ignore_index=True)
 
+#function to calculate cumulative removal
+def cum_cdr_calc(cdr_df):
+    uniq = cdr_df[['Model', 'Scenario', 'Variable']].drop_duplicates()
+    all_yrs = pd.Series(range(2020, 2101))
+    all_yrs = pd.DataFrame({'Year': all_yrs})
+    all_yrs = all_yrs.assign(key=1).merge(uniq.assign(key=1), on='key').drop('key', axis=1)
+    cdr = pd.merge(all_yrs, cdr_df, on=['Model', 'Scenario', 'Year', 'Variable'], how='left')
+    cdr = cdr.sort_values(['Model', 'Scenario', 'Year'])
+    cdr.set_index(['Model', 'Scenario', 'Year', 'Variable'], inplace=True)
+    cdr.interpolate(method='linear', inplace=True)
+    cdr.reset_index(inplace=True)
+    cdr['Cum'] = cdr.groupby(['Model', 'Scenario', 'Variable'])['Removal'].cumsum()
+
+    return cdr[['Model', 'Scenario', 'Variable', 'Removal', 'Cum']].copy()
+
 # function to overlay raster and admin boundary shapefile
 def admin_bound_calculator(key, admin_sf, intersect_src):
     sf = admin_sf
