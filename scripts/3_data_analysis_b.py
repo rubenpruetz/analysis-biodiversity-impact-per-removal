@@ -32,6 +32,10 @@ ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_models.csv')
 lookup_mi_cdr_df['year'] = lookup_mi_cdr_df['year'].astype(str)
 
+tcre_df = pd.read_csv(path_ar6_data / 'tcre_estimates.csv')
+p50_est = float(tcre_df[(tcre_df['Source'] == 'Own trans') &
+                        (tcre_df['Estimate'] == 'point')]['Value'].iloc[0])
+
 # %% choose model to run the script with
 model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
@@ -60,25 +64,31 @@ variable = ['AR6 climate diagnostics|Surface Temperature (GSAT)|MAGICCv7.5.3|50.
 ar6_data = ar6_db.loc[ar6_db['Variable'].isin(variable)]
 ar6_data = ar6_data.loc[ar6_data['Model'].isin(models)]
 ar6_data = ar6_data.loc[ar6_data['Scenario'].isin(scenarios)]
-ar6_data = ar6_data.round(1)  # round temperatures
+
+# rename models for the subsequent step
+ar6_data.replace({'Model': {'AIM/CGE 2.0': 'AIM',
+                            'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
+                            'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
+
+ar6_data_r = ar6_data.round(1)  # round temperatures
 
 # allow no temperature decline by calculating peak warming up until each year
 for year in range(2021, 2101):
-    cols_til_year = ar6_data.loc[:, '2020':str(year)]
-    ar6_data[f'{year}_max'] = cols_til_year.max(axis=1)
+    cols_til_year = ar6_data_r.loc[:, '2020':str(year)]
+    ar6_data_r[f'{year}_max'] = cols_til_year.max(axis=1)
 
 cols = ['Model', 'Scenario', '2020'] + [f'{year}_max' for year in range(2021, 2101)]
-ar6_data_stab = ar6_data[cols]
+ar6_data_stab = ar6_data_r[cols]
 ar6_data_stab = ar6_data_stab.rename(columns={f'{year}_max': str(year) for year in all_years})
 
-ar6_data = ar6_data[['Model', 'Scenario'] + all_years].copy()
+ar6_data_r = ar6_data_r[['Model', 'Scenario'] + all_years].copy()
 
 # %% choose between biodiv recovery or no recovery after peak warming
 
 temperature_decline = 'not_allowed'  # options: 'allowed' or 'not_allowed'
 
 if temperature_decline == 'allowed':
-    warm_file = ar6_data.copy()
+    warm_file = ar6_data_r.copy()
 elif temperature_decline == 'not_allowed':
     warm_file = ar6_data_stab.copy()
 
@@ -86,11 +96,6 @@ bio_select = warm_file.set_index(['Model', 'Scenario'])
 bio_select = 'bio' + \
     bio_select.select_dtypes(include=np.number).astype(str) + '_bin.tif'
 bio_select.reset_index(inplace=True)
-
-# rename models for the subsequent step
-bio_select.replace({'Model': {'AIM/CGE 2.0': 'AIM',
-                              'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
-                              'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
 
 # %% calculate CDR land impact over time
 years = ['2020', '2030', '2040', '2050', '2060', '2070', '2080', '2090', '2100']
@@ -338,7 +343,24 @@ sns.despine()
 plt.show()
 
 # %% plot avoided warming-related refugia loss due CDR
+paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
+ar_removal = load_and_concat('ar_removal', paths)
+beccs_removal = load_and_concat('beccs_removal', paths)
 
+# calculate cumulative removals and avoided warming based on TCRE
+ar_cum = cum_cdr_calc(ar_removal)
+ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000 # x1000 since Gt not Mt
+
+beccs_cum = cum_cdr_calc(beccs_removal)
+beccs_cum['CoolBECCS'] = beccs_cum['Cum'] * p50_est * 1000
+
+# estimate additional warming if AR and BECCS are excluded
+ar6_data_m = pd.melt(ar6_data, id_vars=['Model', 'Scenario'], value_vars=years,
+                     var_name='Year', value_name='Warming')
+ar6_data_m['Year'] = ar6_data_m['Year'].astype(int)
+
+add_warm = pd.merge(ar6_data_m, ar_cum[['Model', 'Scenario', 'Year', 'CoolAR']],
+                    on=['Model', 'Scenario', 'Year'])
 
 # %% maps refugia land impact of CDR across SSP1-3 for a certain warming level
 

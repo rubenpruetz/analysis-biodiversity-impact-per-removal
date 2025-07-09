@@ -126,8 +126,8 @@ def pos_val_summer(arr, squeeze=True):
     if squeeze:
         arr = np.squeeze(arr)
 
-    arr = np.clip(arr, 0, None)  # Set values below zero to 0
-    return np.nansum(arr)  # Sum only non-NaN values
+    arr = np.clip(arr, 0, None)  # set values below zero to 0
+    return np.nansum(arr)  # sum only non-NaN values
 
 # function to plot land-per-removal, removal, and land
 def process_data(land_df, removal_df, cdr_option):
@@ -158,7 +158,7 @@ def cum_cdr_calc(cdr_df):
     cdr.reset_index(inplace=True)
     cdr['Cum'] = cdr.groupby(['Model', 'Scenario', 'Variable'])['Removal'].cumsum()
 
-    return cdr[['Model', 'Scenario', 'Variable', 'Removal', 'Cum']].copy()
+    return cdr[['Model', 'Scenario', 'Variable', 'Year', 'Removal', 'Cum']].copy()
 
 # function to overlay raster and admin boundary shapefile
 def admin_bound_calculator(key, admin_sf, intersect_src):
