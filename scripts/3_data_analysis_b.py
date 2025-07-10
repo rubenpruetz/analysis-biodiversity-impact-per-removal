@@ -349,7 +349,7 @@ beccs_removal = load_and_concat('beccs_removal', paths)
 
 # calculate cumulative removals and avoided warming based on TCRE
 ar_cum = cum_cdr_calc(ar_removal)
-ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000 # x1000 since Gt not Mt
+ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000  # x1000 since Gt not Mt
 
 beccs_cum = cum_cdr_calc(beccs_removal)
 beccs_cum['CoolBECCS'] = beccs_cum['Cum'] * p50_est * 1000
@@ -360,7 +360,52 @@ ar6_data_m = pd.melt(ar6_data, id_vars=['Model', 'Scenario'], value_vars=years,
 ar6_data_m['Year'] = ar6_data_m['Year'].astype(int)
 
 add_warm = pd.merge(ar6_data_m, ar_cum[['Model', 'Scenario', 'Year', 'CoolAR']],
-                    on=['Model', 'Scenario', 'Year'])
+                    on=['Model', 'Scenario', 'Year'], how='left')
+add_warm = pd.merge(add_warm, beccs_cum[['Model', 'Scenario', 'Year', 'CoolBECCS']],
+                    on=['Model', 'Scenario', 'Year'], how='left')
+add_warm.fillna(0, inplace=True)  # account for scenarios with only one CDR option
+add_warm['WarmNoAR'] = add_warm['Warming'] + add_warm['CoolAR']
+add_warm['WarmNoBECCS'] = add_warm['Warming'] + add_warm['CoolBECCS']
+add_warm['WarmNoCDR'] = add_warm['Warming'] + add_warm['CoolAR'] + add_warm['CoolBECCS']
+round_cols = ['Warming', 'WarmNoAR', 'WarmNoBECCS', 'WarmNoCDR']
+add_warm[round_cols] = add_warm[round_cols].round(1)
+
+# create lookup table for global climate refugia size per warming level
+warm_list = [round(x, 1) for x in np.arange(1.2, 4.6, 0.1)]
+refugia_size = []
+
+for warm in warm_list:
+    bio_area = land_area_calculation(path_uea, f'bio{warm}_bin.tif')
+    bio_area_agg = pos_val_summer(bio_area, squeeze=True)
+    refugia_size.append((warm, bio_area_agg))
+
+refug_df = pd.DataFrame(refugia_size, columns=['Warming', 'RemRef'])
+
+# estimate avoided refugia loss due to CDR
+avlo_df = add_warm.copy()
+avlo_df = pd. merge(avlo_df, refug_df, on='Warming')
+avlo_df = pd. merge(avlo_df, refug_df, left_on='WarmNoCDR',
+                    right_on='Warming', suffixes=('', 'NoCDR'))
+avlo_df['AvLoNoCDR'] = (1 - (avlo_df['RemRefNoCDR'] / avlo_df['RemRef'])) * 100
+
+# plot avoided warming loss of remaining refugia due to CDR
+avlo_df['SSP'] = avlo_df['Scenario'].str.split('-').str[0]
+avlo_df['RCP'] = avlo_df['Scenario'].str.split('-').str[1]
+
+fig, axes = plt.subplots(3, 1, figsize=(6, 9), sharex=True, sharey=True)
+sns.lineplot(data=avlo_df.query('Model == "AIM"'),
+             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0])
+sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'),
+             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=True, ax=axes[1])
+sns.lineplot(data=avlo_df.query('Model == "IMAGE"'),
+             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2])
+
+sns.lineplot(data=avlo_df.query('Model == "AIM"'),
+             x='Year', y='RemRef', hue='RCP', palette=rcp_pal,
+             errorbar=('pi', 100), estimator='median', legend=False)
 
 # %% maps refugia land impact of CDR across SSP1-3 for a certain warming level
 
