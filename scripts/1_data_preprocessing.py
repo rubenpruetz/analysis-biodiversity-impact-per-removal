@@ -23,7 +23,7 @@ lookup_resample = pd.read_csv(
     path_uea / 'lookup_table_uea_resample_20km.csv')
 
 lookup_interpol = pd.read_csv(
-    path_uea / 'lookup_table_uea_interpol_20km.csv')
+    path_uea / 'lookup_table_uea_interpol_20km_2digits.csv')
 
 lookup_globiom_nc_df = pd.read_csv(path_globiom / 'lookup_table_globiom_nc_files.csv')
 lookup_globiom_nc_df['year'] = lookup_globiom_nc_df['year'].astype(str)
@@ -50,49 +50,33 @@ for index, row in lookup_resample.iterrows():  # use lookup to resample uea file
         dst.write(tiff.astype(profile['dtype']))
 
 # linearily interpolate warming level between rasters
-inter_steps = 4  # number of desired interpolation steps
+inter_steps = 49  # number of desired interpolation steps
 
-for index, row in lookup_interpol.iterrows():  # use lookup to interpolate uea files
+for _, row in lookup_interpol.iterrows():  # use lookup table to define files
     lower_file = row['lower_file']
     upper_file = row['upper_file']
-    step_a = row['step_a']
-    step_b = row['step_b']
-    step_c = row['step_c']
-    step_d = row['step_d']
+    step_filenames = [row[f'step_{i}'] for i in range(1, inter_steps + 1)]
 
-    with rs.open(path_uea / lower_file, 'r') as input_tiff1:
-        lower_tiff = input_tiff1.read()
-        profile = input_tiff1.profile
+    with rs.open(path_uea / lower_file, 'r') as src_lower:
+        lower_tiff = src_lower.read()
+        profile = src_lower.profile
 
-    with rs.open(path_uea / upper_file, 'r') as input_tiff2:
-        upper_tiff = input_tiff2.read()
+    with rs.open(path_uea / upper_file, 'r') as src_upper:
+        upper_tiff = src_upper.read()
 
     tiff_diff = upper_tiff - lower_tiff
-    step_1 = tiff_diff * (1/(inter_steps+1)) + lower_tiff
-    step_2 = tiff_diff * (2/(inter_steps+1)) + lower_tiff
-    step_3 = tiff_diff * (3/(inter_steps+1)) + lower_tiff
-    step_4 = tiff_diff * (4/(inter_steps+1)) + lower_tiff
 
-    filenames = [step_a, step_b, step_c, step_d]
-    files = [step_1, step_2, step_3, step_4]
+    for i, filename in enumerate(step_filenames, start=1):
+        interpol_tiff = tiff_diff * (i/(inter_steps + 1)) + lower_tiff
 
-    for filename, file in zip(filenames, files):
         with rs.open(path_uea / filename, 'w', **profile) as dst:
-            dst.write(file.astype(profile['dtype']))
+            dst.write(interpol_tiff.astype(profile['dtype']))
 
 # create binary raster based on refugia threshold (0.75) using binary_converter
-input_files = ['bio1.0_near.tif', 'bio1.1_near.tif', 'bio1.2_near.tif',
-               'bio1.3_near.tif', 'bio1.4_near.tif', 'bio1.5_near.tif',
-               'bio1.6_near.tif', 'bio1.7_near.tif', 'bio1.8_near.tif',
-               'bio1.9_near.tif', 'bio2.0_near.tif', 'bio2.1_near.tif',
-               'bio2.2_near.tif', 'bio2.3_near.tif', 'bio2.4_near.tif',
-               'bio2.5_near.tif', 'bio2.6_near.tif', 'bio2.7_near.tif',
-               'bio2.8_near.tif', 'bio2.9_near.tif', 'bio3.0_near.tif',
-               'bio3.1_near.tif', 'bio3.2_near.tif', 'bio3.3_near.tif',
-               'bio3.4_near.tif', 'bio3.5_near.tif', 'bio3.6_near.tif',
-               'bio3.7_near.tif', 'bio3.8_near.tif', 'bio3.9_near.tif',
-               'bio4.0_near.tif', 'bio4.1_near.tif', 'bio4.2_near.tif',
-               'bio4.3_near.tif', 'bio4.4_near.tif', 'bio4.5_near.tif']
+input_files = []
+ts = [round(x, 2) for x in np.arange(1.0, 4.51, 0.01)]
+for t in ts:
+    input_files.append(f'bio{t}_near.tif')
 
 for input_file in input_files:
     output_file = input_file.replace('near.tif', 'bin.tif')

@@ -37,7 +37,7 @@ p50_est = float(tcre_df[(tcre_df['Source'] == 'Own trans') &
                         (tcre_df['Estimate'] == 'point')]['Value'].iloc[0])
 
 # %% choose model to run the script with
-model = 'GLOBIOM'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
+model = 'IMAGE'  # options: 'GLOBIOM' or 'AIM' or 'IMAGE'
 
 if model == 'GLOBIOM':
     path = path_globiom
@@ -70,7 +70,7 @@ ar6_data.replace({'Model': {'AIM/CGE 2.0': 'AIM',
                             'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
                             'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
 
-ar6_data_r = ar6_data.round(1)  # round temperatures
+ar6_data_r = ar6_data.round(2)  # round for 1 or 2 digits
 
 # allow no temperature decline by calculating peak warming up until each year
 for year in range(2021, 2101):
@@ -368,10 +368,10 @@ add_warm['WarmNoAR'] = add_warm['Warming'] + add_warm['CoolAR']
 add_warm['WarmNoBECCS'] = add_warm['Warming'] + add_warm['CoolBECCS']
 add_warm['WarmNoCDR'] = add_warm['Warming'] + add_warm['CoolAR'] + add_warm['CoolBECCS']
 round_cols = ['Warming', 'WarmNoAR', 'WarmNoBECCS', 'WarmNoCDR']
-add_warm[round_cols] = add_warm[round_cols].round(1)
+add_warm[round_cols] = add_warm[round_cols].round(2)
 
 # create lookup table for global climate refugia size per warming level
-warm_list = [round(x, 1) for x in np.arange(1.2, 4.6, 0.1)]
+warm_list = [round(x, 2) for x in np.arange(1.0, 4.51, 0.01)]
 refugia_size = []
 
 for warm in warm_list:
@@ -392,6 +392,8 @@ avlo_df['AvLoNoCDR'] = (1 - (avlo_df['RemRefNoCDR'] / avlo_df['RemRef'])) * 100
 avlo_df['SSP'] = avlo_df['Scenario'].str.split('-').str[0]
 avlo_df['RCP'] = avlo_df['Scenario'].str.split('-').str[1]
 
+avlo_df = avlo_df.loc[avlo_df['RCP'].isin(rcps)]
+
 fig, axes = plt.subplots(3, 1, figsize=(6, 9), sharex=True, sharey=True)
 sns.lineplot(data=avlo_df.query('Model == "AIM"'),
              x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
@@ -402,10 +404,6 @@ sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'),
 sns.lineplot(data=avlo_df.query('Model == "IMAGE"'),
              x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2])
-
-sns.lineplot(data=avlo_df.query('Model == "AIM"'),
-             x='Year', y='RemRef', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', legend=False)
 
 # %% maps refugia land impact of CDR across SSP1-3 for a certain warming level
 
