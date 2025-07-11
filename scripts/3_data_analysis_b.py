@@ -232,7 +232,12 @@ area_df.to_csv(path / f'{model}_area_df_annex_group_temp_decline_{temperature_de
 # %% plot land allocation within refugia across scenarios
 
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
-area_df = load_and_concat('area_df_annex_group_temp_decline_not_allowed', paths)
+area_recov = load_and_concat('area_df_annex_group_temp_decline_allowed', paths)
+area_recov['BioRecov'] = 'Allowed'
+area_norecov = load_and_concat('area_df_annex_group_temp_decline_not_allowed', paths)
+area_norecov['BioRecov'] = 'Not allowed'
+
+area_df = pd.concat([area_recov, area_norecov]).reset_index(drop=True)
 
 rcps = ['19', '26', '45']  # specify RCPs that shall be plotted
 area_df = area_df.loc[area_df['RCP'].isin(rcps)]
@@ -329,8 +334,8 @@ for ax in axes[:, 3]:
     ax.set_ylim([0, 16])
     ax.set_yticklabels([])
 
-fig.supylabel(f'Share of remaining refugia allocated for CDR [%]\n(SSP1-SSP3 range as shading)',
-              x=0.03, va='center', ha='center')
+fig.supylabel(f'Share of remaining refugia allocated for CDR [%]',
+              x=0.05, va='center', ha='center')
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
@@ -387,71 +392,61 @@ for warm in warm_list:
 
 refug_df = pd.DataFrame(refugia_size, columns=['Warming', 'RemRef'])
 
-# determine whether refugia recovery (temperature decline) is considered for this plot
-temperature_decline = 'not_consider'  # options: 'consider' or 'not_consider'
+# estimate avoided refugia loss due to CDR for both recovery assumptions
+avlo_recov = add_warm.copy()
+avlo_recov = pd. merge(avlo_recov, refug_df, left_on='Warming', right_on='Warming')
+avlo_recov = pd. merge(avlo_recov, refug_df, left_on='WarmNoCDR',
+                       right_on='Warming',  suffixes=('', 'NoCDR'))
+avlo_recov['AvLoNoCDR'] = (1 - (avlo_recov['RemRefNoCDR'] / avlo_recov['RemRef'])) * 100
 
-if temperature_decline == 'consider':
-    scen_warm = 'Warming'
-    WarmNoCDR = 'WarmNoCDR'
-elif temperature_decline == 'not_consider':
-    scen_warm = 'Warming_stab'
-    WarmNoCDR = 'WarmNoCDR_stab'
+avlo_norecov = add_warm.copy()
+avlo_norecov = pd. merge(avlo_norecov, refug_df, left_on='Warming_stab', right_on='Warming')
+avlo_norecov = pd. merge(avlo_norecov, refug_df, left_on='WarmNoCDR_stab',
+                         right_on='Warming', suffixes=('', 'NoCDR'))
+avlo_norecov['AvLoNoCDR'] = (1 - (avlo_norecov['RemRefNoCDR'] / avlo_norecov['RemRef'])) * 100
 
-# estimate avoided refugia loss due to CDR
-avlo_df = add_warm.copy()
-avlo_df = pd. merge(avlo_df, refug_df, left_on=scen_warm, right_on='Warming')
-avlo_df = pd. merge(avlo_df, refug_df, left_on=WarmNoCDR, right_on='Warming',
-                    suffixes=('', 'NoCDR'))
-avlo_df['AvLoNoCDR'] = (1 - (avlo_df['RemRefNoCDR'] / avlo_df['RemRef'])) * 100
-
-
-##
-avlo_df2 = add_warm.copy()
-avlo_df2 = pd. merge(avlo_df2, refug_df, left_on='Warming', right_on='Warming')
-avlo_df2 = pd. merge(avlo_df2, refug_df, left_on='WarmNoCDR', right_on='Warming',
-                     suffixes=('', 'NoCDR'))
-avlo_df2['AvLoNoCDR'] = (1 - (avlo_df2['RemRefNoCDR'] / avlo_df2['RemRef'])) * 100
-avlo_df2['SSP'] = avlo_df2['Scenario'].str.split('-').str[0]
-avlo_df2['RCP'] = avlo_df2['Scenario'].str.split('-').str[1]
-avlo_df2 = avlo_df2.loc[avlo_df2['RCP'].isin(rcps)]
-##
+avlo_df = pd.concat([avlo_recov, avlo_norecov]).reset_index(drop=True)
 
 # plot avoided warming loss of remaining refugia due to CDR
 avlo_df['SSP'] = avlo_df['Scenario'].str.split('-').str[0]
 avlo_df['RCP'] = avlo_df['Scenario'].str.split('-').str[1]
 
-avlo_df = avlo_df.loc[avlo_df['RCP'].isin(rcps)]
+# drop AIM RCP1.9 as forestation removal variable is missing
+avlo_df.drop(avlo_df[(avlo_df['Model'] == 'AIM') &
+                     (avlo_df['RCP'] == '19')].index, inplace=True)
 
-fig, axes = plt.subplots(3, 1, figsize=(6, 9), sharex=True, sharey=True)
-sns.lineplot(data=avlo_df.query('Model == "AIM"'),
-             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0])
-sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'),
-             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', legend=True, ax=axes[1])
-sns.lineplot(data=avlo_df.query('Model == "IMAGE"'),
-             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2])
+avlo_df = avlo_df.loc[avlo_df['RCP'].isin(rcps)]  # specify RCPs to plot
 
-sns.lineplot(data=avlo_df2.query('Model == "AIM"'), linestyle='--',
-             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0])
-sns.lineplot(data=avlo_df2.query('Model == "GLOBIOM"'), linestyle='--',
-             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', legend=True, ax=axes[1])
-sns.lineplot(data=avlo_df2.query('Model == "IMAGE"'), linestyle='--',
-             x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2])
+fig, axes = plt.subplots(3, 1, figsize=(2, 9), sharex=True, sharey=True)
+sns.lineplot(data=avlo_df.query('Model == "AIM"'), x='Year', y='AvLoNoCDR',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', linewidth=0, err_kws={'alpha': 0.5},
+             legend=False, ax=axes[0])
+sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'), x='Year', y='AvLoNoCDR',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', linewidth=0, err_kws={'alpha': 0.5},
+             legend=False, ax=axes[1])
+sns.lineplot(data=avlo_df.query('Model == "IMAGE"'), x='Year', y='AvLoNoCDR',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', linewidth=0, err_kws={'alpha': 0.5},
+             legend=False, ax=axes[2])
 
+axes[2].set_xlabel('')
+axes[0].set_ylabel('AIM')
+axes[1].set_ylabel('GLOBIOM')
+axes[2].set_ylabel('IMAGE')
+fig.supylabel(f'Share of remaining refugia preserved due to CDR [%]',
+              x=-0.2, va='center', ha='center')
 
-plt.figure(figsize=(2, 5.2))
-sns.lineplot(data=avlo_df, x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', linewidth=0, 
-             err_kws={'alpha': 0.4}, legend=True)
-sns.lineplot(data=avlo_df2, x='Year', y='AvLoNoCDR', hue='RCP', palette=rcp_pal,
-             errorbar=('pi', 100), estimator='median', linewidth=0, 
-             err_kws={'alpha': 0.4}, legend=False)
+for ax in axes.flat:
+    ax.set_xlim(2020, 2100)
+    ax.set_xticks([2020, 2100])
+    ax.set_ylim(0, 25)
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
+
+plt.subplots_adjust(hspace=0.25)
 sns.despine()
+plt.show()
 
 # %% maps refugia land impact of CDR across SSP1-3 for a certain warming level
 
