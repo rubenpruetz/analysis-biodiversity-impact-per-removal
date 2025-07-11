@@ -417,12 +417,10 @@ avlo_df.drop(avlo_df[(avlo_df['Model'] == 'AIM') &
 
 avlo_df = avlo_df.loc[avlo_df['RCP'].isin(rcps)]  # specify RCPs to plot
 
-
-#%%
 # plot avoided loss as negative
 avlo_df['AvLoNoCDR_invers'] = avlo_df['AvLoNoCDR'] * -1
-
-fig, axes = plt.subplots(3, 1, figsize=(1.7, 7), sharex=True, sharey=True)
+#%%
+fig, axes = plt.subplots(3, 1, figsize=(1.8, 7), sharex=True, sharey=True)
 sns.lineplot(data=avlo_df.query('Model == "AIM"'), x='Year', y='AvLoNoCDR_invers',
              hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
              estimator='median', legend=False, ax=axes[0])
@@ -894,10 +892,10 @@ norm_g1 = BoundaryNorm([0, 1], color_g1.N)
 color_g2 = ListedColormap([(0, 0, 0, 0), 'grey'])
 norm_g2 = BoundaryNorm([0, 1], color_g2.N)
 
-color_bio = ListedColormap([(0, 0, 0, 0), 'crimson'])
+color_bio = ListedColormap([(0, 0, 0, 0), 'gold'])
 norm_bio = BoundaryNorm([0, 1], color_bio.N)
 
-color_hs = ListedColormap([(0, 0, 0, 0), 'gold'])
+color_hs = ListedColormap([(0, 0, 0, 0), 'crimson'])
 norm_hs = BoundaryNorm([0, 1], color_hs.N)
 
 fig = plt.figure(figsize=(10, 6))
@@ -925,12 +923,16 @@ ax.coastlines(linewidth=0.2)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
 legend_patches = [
-    mpatches.Patch(color='crimson', label='CDR in refugia'),
-    mpatches.Patch(color='gold', label='CDR in refugia & hotspot'),
+    mpatches.Patch(color='gold', label='CDR in refugia'),
+    mpatches.Patch(color='crimson', label='CDR in refugia & hotspot'),
     mpatches.Patch(color='gainsboro', label='Refugia'),
     mpatches.Patch(color='grey', label='Hotspot')]
 
-ax.legend(bbox_to_anchor=(0.15, 1), handles=legend_patches, ncols=4,
+legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
           loc='lower left', fontsize=9.5, columnspacing=0.8, handletextpad=0.5,
-          frameon=True)
+          borderpad=1.5, frameon=True)
+
+legend.get_frame().set_alpha(1)
+legend.get_frame().set_edgecolor('none')
+
 plt.show()
