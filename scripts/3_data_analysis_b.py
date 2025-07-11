@@ -246,7 +246,7 @@ rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
 all_rcps = sorted(area_df['RCP'].unique())
 
-fig, axes = plt.subplots(3, 4, figsize=(9, 6), sharex=True, sharey=False)
+fig, axes = plt.subplots(3, 4, figsize=(8, 6), sharex=True, sharey=False)
 sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "Afforestation"'),
              x='Year', y='alloc_perc', palette=rcp_pal, hue='RCP',
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 0])
@@ -295,10 +295,10 @@ new_labels = [rename_dict.get(label, label) for label in labels]
 axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.05, 2.9), loc='upper left',
                   ncols=3, columnspacing=1, handletextpad=0.4)
 
-axes[0, 0].set_title('Global\n(Afforestation)')
+axes[0, 0].set_title('Global\n(Forestation)')
 axes[0, 1].set_title('Global\n(BECCS)')
-axes[0, 2].set_title('Annex I\n(Afforestation)')
-axes[0, 3].set_title('Non-Annex I\n(Afforestation)')
+axes[0, 2].set_title('Annex I\n(Forestation)')
+axes[0, 3].set_title('Non-Annex I\n(Forestation)')
 
 axes[2, 0].set_xlabel('')
 axes[2, 1].set_xlabel('')
@@ -417,34 +417,39 @@ avlo_df.drop(avlo_df[(avlo_df['Model'] == 'AIM') &
 
 avlo_df = avlo_df.loc[avlo_df['RCP'].isin(rcps)]  # specify RCPs to plot
 
-fig, axes = plt.subplots(3, 1, figsize=(2, 9), sharex=True, sharey=True)
-sns.lineplot(data=avlo_df.query('Model == "AIM"'), x='Year', y='AvLoNoCDR',
-             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
-             estimator='median', linewidth=0, err_kws={'alpha': 0.5},
-             legend=False, ax=axes[0])
-sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'), x='Year', y='AvLoNoCDR',
-             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
-             estimator='median', linewidth=0, err_kws={'alpha': 0.5},
-             legend=False, ax=axes[1])
-sns.lineplot(data=avlo_df.query('Model == "IMAGE"'), x='Year', y='AvLoNoCDR',
-             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
-             estimator='median', linewidth=0, err_kws={'alpha': 0.5},
-             legend=False, ax=axes[2])
 
+#%%
+# plot avoided loss as negative
+avlo_df['AvLoNoCDR_invers'] = avlo_df['AvLoNoCDR'] * -1
+
+fig, axes = plt.subplots(3, 1, figsize=(1.7, 7), sharex=True, sharey=True)
+sns.lineplot(data=avlo_df.query('Model == "AIM"'), x='Year', y='AvLoNoCDR_invers',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', legend=False, ax=axes[0])
+sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'), x='Year', y='AvLoNoCDR_invers',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', legend=False, ax=axes[1])
+sns.lineplot(data=avlo_df.query('Model == "IMAGE"'), x='Year', y='AvLoNoCDR_invers',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', legend=False, ax=axes[2])
+
+axes[0].set_title('Global\n(Both)', fontsize=13.5)
 axes[2].set_xlabel('')
-axes[0].set_ylabel('AIM')
-axes[1].set_ylabel('GLOBIOM')
-axes[2].set_ylabel('IMAGE')
-fig.supylabel(f'Share of remaining refugia preserved due to CDR [%]',
-              x=-0.2, va='center', ha='center')
+axes[0].set_ylabel('AIM', fontsize=12)
+axes[1].set_ylabel('GLOBIOM', fontsize=12)
+axes[2].set_ylabel('IMAGE', fontsize=12)
+fig.supylabel(f'Share of remaining refugia lost when excluding CDR [%]',
+              x=-0.35, va='center', ha='center', fontsize=13)
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
     ax.set_xticks([2020, 2100])
-    ax.set_ylim(0, 25)
+    ax.set_ylim(-25, 0)
+    ax.tick_params(axis='x', labelsize=11.7)
+    ax.tick_params(axis='y', labelsize=11.2)
     ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
 
-plt.subplots_adjust(hspace=0.25)
+plt.subplots_adjust(hspace=0.23)
 sns.despine()
 plt.show()
 
