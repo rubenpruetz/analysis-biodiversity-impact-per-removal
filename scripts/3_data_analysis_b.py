@@ -741,7 +741,7 @@ fig, axes = plt.subplots(1, 3, figsize=(12, 6), sharex=True, sharey=True)
 model_colors = {'AIM': 'darkslategrey', 'GLOBIOM': 'blueviolet',
                 'IMAGE': 'royalblue'}
 cdr_colors = {'Afforestation': 'crimson', 'BECCS': 'darkorange',
-              'Afforestation & BECCS': 'lightsteelblue'}
+              'Forestation & BECCS': 'lightsteelblue'}
 
 sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs_res"'), x='Year',
             y='Value', hue='CDR_option', legend=True, alpha=0.6, palette=cdr_colors,
