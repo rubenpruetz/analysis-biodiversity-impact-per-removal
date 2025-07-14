@@ -550,7 +550,7 @@ for ssp in ssps:
         cbar_be.ax.set_position([0.576, 0, 0.1, 0.501])
         cbar_ar.ax.tick_params(labelsize=10)
         cbar_be.ax.tick_params(labelsize=10)
-        cbar_ar.set_label(f'Afforestation per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
+        cbar_ar.set_label(f'Forestation per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
                           labelpad=1, fontsize=10.5)
         cbar_be.set_label(f'BECCS per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
                           labelpad=1, fontsize=10.5)
@@ -652,7 +652,7 @@ for ssp in wab_dict.keys():
                         spacing='proportional', extend='max')
     cbar.ax.set_position([0.346, -0.175, 0.334, 0.5])
     cbar.ax.tick_params(labelsize=14)
-    cbar.set_label(f'Share of national refugia covered by Afforestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
+    cbar.set_label(f'Share of national refugia covered by Forestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
                    fontsize=15)
     plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.04, y=0.2, ha='left')
     plt.show()
@@ -723,7 +723,7 @@ exclu_df_sum = exclu_df.groupby(['Model', 'Year'])[['CDR_land',
                                                     'CDR_in_hs_res',
                                                     'CDR_in_bio']].agg('sum')
 exclu_df_sum.reset_index(inplace=True)
-exclu_df_sum['CDR_option'] = 'Afforestation & BECCS'
+exclu_df_sum['CDR_option'] = 'Forestation & BECCS'
 exclu_df = pd.concat([exclu_df, exclu_df_sum])
 
 # calculate share of overlap of CDR land with biodiversity criteria
