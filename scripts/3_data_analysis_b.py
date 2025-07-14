@@ -732,15 +732,17 @@ exclu_df['Reduct_hs_res'] = exclu_df['CDR_in_hs_res'] / exclu_df['CDR_land'] * 1
 exclu_df['Reduct_bio'] = exclu_df['CDR_in_bio'] / exclu_df['CDR_land'] * 100
 
 exclu_df = pd.melt(exclu_df, id_vars=['Model', 'CDR_option', 'Year'],
-                   value_vars = ['Reduct_hs', 'Reduct_hs_res', 'Reduct_bio'],
+                   value_vars=['Reduct_hs', 'Reduct_hs_res', 'Reduct_bio'],
                    var_name='Reduct_criteria',
                    value_name='Value')
+
+exclu_df.replace({'CDR_option': {'Afforestation': 'Forestation'}}, inplace=True)
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 6), sharex=True, sharey=True)
 
 model_colors = {'AIM': 'darkslategrey', 'GLOBIOM': 'blueviolet',
                 'IMAGE': 'royalblue'}
-cdr_colors = {'Afforestation': 'crimson', 'BECCS': 'darkorange',
+cdr_colors = {'Forestation': 'crimson', 'BECCS': 'darkorange',
               'Forestation & BECCS': 'lightsteelblue'}
 
 sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs_res"'), x='Year',
