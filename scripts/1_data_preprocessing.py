@@ -396,4 +396,3 @@ not_suitable = max_pot - cons_pot
 # account for slight mismatch between max and constrained potential
 not_suitable = not_suitable.where(not_suitable == 1, 0)
 not_suitable.rio.to_raster(path_beccs_pot / 'beccs_not_suit.tif', driver='GTiff')
-
