@@ -17,6 +17,8 @@ path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
+path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
+path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
 
 # load lookup table containing nc file information
 lookup_resample = pd.read_csv(
@@ -316,3 +318,69 @@ for model in models:
 
             print(f'{model} {scenario} {year} Forest: {forest} Mha')
             print(f'{model} {scenario} {year} Cropland: {cropland} Mha')
+
+# %% process maps showing potential for reforestation and BECCS
+
+# create binary map for reforestation potential based on Fesenmyer et al. 2025
+with rs.open(path_ref_pot / 'for_ref_tco2eha.tif') as src:
+    data = src.read()
+    profile = src.profile
+
+output_data = np.where(data > 0, 1, np.where(data < 1, 0, data))
+profile.update(dtype=rs.float32)
+
+with rs.open(path_ref_pot / 'ref_pot_bin.tif', 'w', **profile) as dst:
+    dst.write(output_data.astype(profile['dtype']))
+
+tiff_resampler(path_ref_pot / 'ref_pot_bin.tif', target_res, 'nearest',
+               path_ref_pot / 'ref_pot_bin.tif')
+
+# create binary map for BECCS constrained potential based on Braun et al. 2025
+nc_file = rioxarray.open_rasterio(path_beccs_pot / 'BECCS_area_fraction_PB-B.nc',
+                                  decode_times=False,
+                                  band_as_variable=True)
+data_array_proj = nc_file.rio.write_crs('EPSG:4326')
+data_array_proj.rio.to_raster(path_beccs_pot / 'beccs_cons_pot.tif', driver='GTiff')
+
+with rs.open(path_beccs_pot / 'beccs_cons_pot.tif') as src:
+    data = src.read()
+    profile = src.profile
+
+output_data = np.where((data > 0) & (data <= 1), 1, data)
+profile.update(dtype=rs.float32)
+
+with rs.open(path_beccs_pot / 'beccs_cons_pot_bin.tif', 'w', **profile) as dst:
+    dst.write(output_data.astype(profile['dtype']))
+
+tiff_resampler(path_beccs_pot / 'beccs_cons_pot_bin.tif', target_res, 'nearest',
+               path_beccs_pot / 'beccs_cons_pot_bin.tif')
+
+# create binary map for BECCS maximum potential based on Braun et al. 2025
+nc_file = rioxarray.open_rasterio(path_beccs_pot / 'BECCS_area_fraction_CDRonly.nc',
+                                  decode_times=False,
+                                  band_as_variable=True)
+data_array_proj = nc_file.rio.write_crs('EPSG:4326')
+data_array_proj.rio.to_raster(path_beccs_pot / 'beccs_max_pot.tif', driver='GTiff')
+
+with rs.open(path_beccs_pot / 'beccs_max_pot.tif') as src:
+    data = src.read()
+    profile = src.profile
+
+output_data = np.where((data > 0) & (data <= 1), 1, data)
+profile.update(dtype=rs.float32)
+
+with rs.open(path_beccs_pot / 'beccs_max_pot_bin.tif', 'w', **profile) as dst:
+    dst.write(output_data.astype(profile['dtype']))
+
+tiff_resampler(path_beccs_pot / 'beccs_max_pot_bin.tif', target_res, 'nearest',
+               path_beccs_pot / 'beccs_max_pot_bin.tif')
+
+# create binary map outside BECCS constrained potential (not suitable area)
+max_pot = rioxarray.open_rasterio(path_beccs_pot / 'beccs_max_pot_bin.tif', masked=True)
+cons_pot = rioxarray.open_rasterio(path_beccs_pot / 'beccs_cons_pot_bin.tif', masked=True)
+not_suitable = max_pot - cons_pot
+
+# account for slight mismatch between max and constrained potential
+not_suitable = not_suitable.where(not_suitable == 1, 0)
+not_suitable.rio.to_raster(path_beccs_pot / 'not_suit_beccs.tif', driver='GTiff')
+

@@ -47,8 +47,8 @@ def binary_converter(input_tif,  # input tif (string)
                      threshold,  # minimum value (integer)
                      output_name):  # specify output name (string)
     with rs.open(filepath / input_tif) as src:
-        data = src.read()  # Read the GeoTIFF
-        profile = src.profile  # Get metadata of GeoTiff
+        data = src.read()  # read the geotiff
+        profile = src.profile  # get metadata of geotiff
 
     output_data = np.where(data >= threshold, 1,
                            np.where(data < threshold, 0, data))
