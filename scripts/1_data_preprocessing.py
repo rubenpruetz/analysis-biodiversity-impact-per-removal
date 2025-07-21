@@ -326,34 +326,47 @@ with rs.open(path_ref_pot / 'for_ref_tco2eha.tif') as src:
     data = src.read()
     profile = src.profile
 
-output_data = np.where(data > 0, 1, np.where(data < 1, 0, data))
+ref_pot = np.where(data > 0, 1, np.where(data < 1, 0, data))
 profile.update(dtype=rs.float32)
 
-with rs.open(path_ref_pot / 'ref_pot_bin.tif', 'w', **profile) as dst:
-    dst.write(output_data.astype(profile['dtype']))
+with rs.open(path_ref_pot / 'ref_suit.tif', 'w', **profile) as dst:
+    dst.write(ref_pot.astype(profile['dtype']))
 
-tiff_resampler(path_ref_pot / 'ref_pot_bin.tif', target_res, 'nearest',
-               path_ref_pot / 'ref_pot_bin.tif')
+tiff_resampler(path_ref_pot / 'ref_suit.tif', target_res, 'nearest',
+               path_ref_pot / 'ref_suit.tif')
+
+# create binary map for area not suitable for reforestation
+with rs.open(path_ref_pot / 'ref_suit.tif') as src:
+    data = src.read()
+    profile = src.profile
+
+no_ref_pot = np.where(data == 1, 0, np.where(data == 0, 1, data))
+
+with rs.open(path_ref_pot / 'ref_not_suit.tif', 'w', **profile) as dst:
+    dst.write(no_ref_pot.astype(profile['dtype']))
+
+tiff_resampler(path_ref_pot / 'ref_not_suit.tif', target_res, 'nearest',
+               path_ref_pot / 'ref_not_suit.tif')
 
 # create binary map for BECCS constrained potential based on Braun et al. 2025
 nc_file = rioxarray.open_rasterio(path_beccs_pot / 'BECCS_area_fraction_PB-B.nc',
                                   decode_times=False,
                                   band_as_variable=True)
 data_array_proj = nc_file.rio.write_crs('EPSG:4326')
-data_array_proj.rio.to_raster(path_beccs_pot / 'beccs_cons_pot.tif', driver='GTiff')
+data_array_proj.rio.to_raster(path_beccs_pot / 'beccs_suit.tif', driver='GTiff')
 
-with rs.open(path_beccs_pot / 'beccs_cons_pot.tif') as src:
+with rs.open(path_beccs_pot / 'beccs_suit.tif') as src:
     data = src.read()
     profile = src.profile
 
 output_data = np.where((data > 0) & (data <= 1), 1, data)
 profile.update(dtype=rs.float32)
 
-with rs.open(path_beccs_pot / 'beccs_cons_pot_bin.tif', 'w', **profile) as dst:
+with rs.open(path_beccs_pot / 'beccs_suit.tif', 'w', **profile) as dst:
     dst.write(output_data.astype(profile['dtype']))
 
-tiff_resampler(path_beccs_pot / 'beccs_cons_pot_bin.tif', target_res, 'nearest',
-               path_beccs_pot / 'beccs_cons_pot_bin.tif')
+tiff_resampler(path_beccs_pot / 'beccs_suit.tif', target_res, 'nearest',
+               path_beccs_pot / 'beccs_suit.tif')
 
 # create binary map for BECCS maximum potential based on Braun et al. 2025
 nc_file = rioxarray.open_rasterio(path_beccs_pot / 'BECCS_area_fraction_CDRonly.nc',
@@ -369,18 +382,18 @@ with rs.open(path_beccs_pot / 'beccs_max_pot.tif') as src:
 output_data = np.where((data > 0) & (data <= 1), 1, data)
 profile.update(dtype=rs.float32)
 
-with rs.open(path_beccs_pot / 'beccs_max_pot_bin.tif', 'w', **profile) as dst:
+with rs.open(path_beccs_pot / 'beccs_max_pot.tif', 'w', **profile) as dst:
     dst.write(output_data.astype(profile['dtype']))
 
-tiff_resampler(path_beccs_pot / 'beccs_max_pot_bin.tif', target_res, 'nearest',
-               path_beccs_pot / 'beccs_max_pot_bin.tif')
+tiff_resampler(path_beccs_pot / 'beccs_max_pot.tif', target_res, 'nearest',
+               path_beccs_pot / 'beccs_max_pot.tif')
 
 # create binary map outside BECCS constrained potential (not suitable area)
-max_pot = rioxarray.open_rasterio(path_beccs_pot / 'beccs_max_pot_bin.tif', masked=True)
-cons_pot = rioxarray.open_rasterio(path_beccs_pot / 'beccs_cons_pot_bin.tif', masked=True)
+max_pot = rioxarray.open_rasterio(path_beccs_pot / 'beccs_max_pot.tif', masked=True)
+cons_pot = rioxarray.open_rasterio(path_beccs_pot / 'beccs_suit.tif', masked=True)
 not_suitable = max_pot - cons_pot
 
 # account for slight mismatch between max and constrained potential
 not_suitable = not_suitable.where(not_suitable == 1, 0)
-not_suitable.rio.to_raster(path_beccs_pot / 'not_suit_beccs.tif', driver='GTiff')
+not_suitable.rio.to_raster(path_beccs_pot / 'beccs_not_suit.tif', driver='GTiff')
 
