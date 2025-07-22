@@ -346,4 +346,3 @@ ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
         fontweight='bold', zorder=10)
 
 plt.show()
-
