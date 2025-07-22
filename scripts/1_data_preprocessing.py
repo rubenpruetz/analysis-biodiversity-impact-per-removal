@@ -14,6 +14,7 @@ from pathlib import Path
 from required_functions import *
 
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
+path_gcam = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/gcam_maps')
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
@@ -30,11 +31,11 @@ lookup_interpol = pd.read_csv(
 lookup_globiom_nc_df = pd.read_csv(path_globiom / 'lookup_table_globiom_nc_files.csv')
 lookup_globiom_nc_df['year'] = lookup_globiom_nc_df['year'].astype(str)
 
-lookup_aim_nc_df = pd.read_csv(
-    path_aim / 'lookup_table_aim_nc_files.csv')
+lookup_aim_nc_df = pd.read_csv(path_aim / 'lookup_table_aim_nc_files.csv')
 
-lookup_image_nc_df = pd.read_csv(
-    path_image / 'lookup_table_image_nc_files.csv')
+lookup_gcam_nc_df = pd.read_csv(path_gcam / 'lookup_table_gcam_nc_files.csv')
+
+lookup_image_nc_df = pd.read_csv(path_image / 'lookup_table_image_nc_files.csv')
 
 lookup_image_nc_pre = pd.read_csv(path_image /
                                   'lookup_table_image_nc_files_preprocessing.csv')
