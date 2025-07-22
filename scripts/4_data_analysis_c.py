@@ -19,6 +19,8 @@ path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodivers
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
+path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
+path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
 
 # %% estimate land CDR conflict with SDG 15.5 based on different criteria
 hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif')
@@ -146,7 +148,7 @@ axes[0].add_artist(legend1)
 
 axes[0].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity hotspots', fontsize=11)
 axes[1].set_xlabel('Exclusion of land within current \nbiodiversity hotspots', fontsize=11)
-axes[2].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity refugia', fontsize=11)
+axes[2].set_xlabel('Exclusion of land within 1.8 °C resilient \nclimate refugia', fontsize=11)
 axes[0].set_ylabel(f'Share of CDR land not available for allocation in SSP2-26 [%] \n(median and min-max range across models)',
                    fontsize=12)
 
@@ -158,7 +160,7 @@ sns.despine()
 plt.show()
 
 # %% plot hotspot areas of concern in terms of model agreement
-# make files from different models binary (cell threshold >= 10% of max area)
+# make files from different models binary (cell threshold >= 5% of max area)
 for model in models:
     for cdr_option in cdr_options:
         if model == 'GLOBIOM':
@@ -181,67 +183,75 @@ for model in models:
 
         land_allo_share = land_in / land_max  # estimate cell shares allocated
         land_allo_share.rio.to_raster(path / land_temp , driver='GTiff')
-        binary_converter(land_temp, path, 0.10, land_out)  # adjust threshold if needed
+        binary_converter(land_temp, path, 0.05, land_out)  # adjust threshold if needed
 
+# load area-based criteria for beneficia/harmful effects on biodiversity
+ref_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_suit.tif', masked=True)
+ref_not_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_not_suit.tif', masked=True)
+beccs_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_suit.tif', masked=True)
+beccs_not_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_not_suit.tif', masked=True)
+
+# calculate model agreement in refugia and check if likely positive or negative
 for cdr_option in cdr_options:
     aim_land = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
     globiom_land = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
     image_land = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
 
-    # calculate model agreement in refugia
+    if cdr_option == 'Afforestation':
+        suit = ref_suit
+        not_suit = ref_not_suit
+    elif cdr_option == 'BECCS':
+        suit = beccs_suit
+        not_suit = beccs_not_suit
+
     aim_land = aim_land.rio.reproject_match(res_bio)
     globiom_land = globiom_land.rio.reproject_match(res_bio)
     image_land = image_land.rio.reproject_match(res_bio)
-    agree_in_res_bio = (aim_land + globiom_land + image_land) * res_bio
-    agree_in_res_bio.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_index_in_res_bio.tif', driver='GTiff')
-    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_index_in_res_bio.tif',
-                     path_all, 2,
-                     f'mi_{cdr_option}_SSP2-26_2100_index_in_res_bio.tif')
+    suit = suit.rio.reproject_match(res_bio)
+    not_suit = not_suit.rio.reproject_match(res_bio)
 
-    # calculate model agreement in resilient hotspot
-    aim_land = aim_land.rio.reproject_match(hs_resil)
-    globiom_land = globiom_land.rio.reproject_match(hs_resil)
-    image_land = image_land.rio.reproject_match(hs_resil)
-    agree_in_res_bio = (aim_land + globiom_land + image_land) * hs_resil
-    agree_in_res_bio.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_index_in_res_hs.tif', driver='GTiff')
-    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_index_in_res_hs.tif',
-                     path_all, 2,
-                     f'mi_{cdr_option}_SSP2-26_2100_index_in_res_hs.tif')
+    agree_in_bio_pos = (aim_land + globiom_land + image_land) * res_bio * suit
+    agree_in_bio_neg = (aim_land + globiom_land + image_land) * res_bio * not_suit
 
-hs_resil.rio.to_raster(path_hotspots / 'hs_resilient.tif', driver='GTiff')
+    agree_in_bio_pos.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_suit.tif', driver='GTiff')
+    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_suit.tif', path_all, 2,
+                     f'mi_{cdr_option}_SSP2-26_2100_suit.tif')
+    agree_in_bio_neg.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_not_suit.tif', driver='GTiff')
+    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_not_suit.tif', path_all, 2,
+                     f'mi_{cdr_option}_SSP2-26_2100_not_suit.tif')
 
 # %%
 
-ar = rs.open(path_all / 'mi_Afforestation_SSP2-26_2100_index_in_res_bio.tif')
-be = rs.open(path_all / 'mi_BECCS_SSP2-26_2100_index_in_res_bio.tif')
-ar_hs = rs.open(path_all / 'mi_Afforestation_SSP2-26_2100_index_in_res_hs.tif')
-be_hs = rs.open(path_all / 'mi_BECCS_SSP2-26_2100_index_in_res_hs.tif')
+ar_suit = rs.open(path_all / 'mi_Afforestation_SSP2-26_2100_suit.tif')
+be_suit = rs.open(path_all / 'mi_BECCS_SSP2-26_2100_suit.tif')
+ar_nsuit = rs.open(path_all / 'mi_Afforestation_SSP2-26_2100_not_suit.tif')
+be_nsuit = rs.open(path_all / 'mi_BECCS_SSP2-26_2100_not_suit.tif')
 refug = rs.open(path_uea / 'bio1.8_bin.tif')
 hs_resil = rs.open(path_hotspots / 'hs_resilient.tif')
 
-data_ar = ar.read(1)
-data_be = be.read(1)
-data_ar_hs = ar_hs.read(1)
-data_be_hs = be_hs.read(1)
+data_ar = ar_suit.read(1)
+data_be = be_suit.read(1)
+data_ar_n = ar_nsuit.read(1)
+data_be_n = be_nsuit.read(1)
 data_refug = refug.read(1)
 data_hs_resil = hs_resil.read(1)
 
 # get the metadata
-transform = ar.transform
-extent_ar = [transform[2], transform[2] + transform[0] * ar.width,
-             transform[5] + transform[4] * ar.height, transform[5]]
+transform = ar_suit.transform
+extent_ar = [transform[2], transform[2] + transform[0] * ar_suit.width,
+             transform[5] + transform[4] * ar_suit.height, transform[5]]
 
-transform = be.transform
-extent_be = [transform[2], transform[2] + transform[0] * be.width,
-             transform[5] + transform[4] * be.height, transform[5]]
+transform = be_suit.transform
+extent_be = [transform[2], transform[2] + transform[0] * be_suit.width,
+             transform[5] + transform[4] * be_suit.height, transform[5]]
 
-transform = ar.transform
-extent_ar_hs = [transform[2], transform[2] + transform[0] * ar_hs.width,
-             transform[5] + transform[4] * ar_hs.height, transform[5]]
+transform = ar_nsuit.transform
+extent_ar_n = [transform[2], transform[2] + transform[0] * ar_nsuit.width,
+               transform[5] + transform[4] * ar_nsuit.height, transform[5]]
 
-transform = be.transform
-extent_be_hs = [transform[2], transform[2] + transform[0] * be_hs.width,
-             transform[5] + transform[4] * be_hs.height, transform[5]]
+transform = be_nsuit.transform
+extent_be_n = [transform[2], transform[2] + transform[0] * be_nsuit.width,
+               transform[5] + transform[4] * be_nsuit.height, transform[5]]
 
 transform = refug.transform
 extent_refug = [transform[2], transform[2] + transform[0] * refug.width,
@@ -257,12 +267,13 @@ norm_g1 = BoundaryNorm([0, 1], color_g1.N)
 color_g2 = ListedColormap([(0, 0, 0, 0), 'grey'])
 norm_g2 = BoundaryNorm([0, 1], color_g2.N)
 
-color_bio = ListedColormap([(0, 0, 0, 0), 'gold'])
-norm_bio = BoundaryNorm([0, 1], color_bio.N)
+PotBen = ListedColormap([(0, 0, 0, 0), 'gold'])
+norm_PotBen = BoundaryNorm([0, 1], PotBen.N)
 
-color_hs = ListedColormap([(0, 0, 0, 0), 'crimson'])
-norm_hs = BoundaryNorm([0, 1], color_hs.N)
+LikHarm = ListedColormap([(0, 0, 0, 0), 'crimson'])
+norm_LikHarm = BoundaryNorm([0, 1], LikHarm.N)
 
+# plot agreement for forestation
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
 
@@ -273,32 +284,66 @@ img_hs = ax.imshow(data_hs_resil, extent=extent_hs, transform=ccrs.PlateCarree()
                    origin='upper', cmap=color_g2, norm=norm_g2)
 
 img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
-                   origin='upper', cmap=color_bio, norm=norm_bio)
+                   origin='upper', cmap=PotBen, norm=norm_PotBen)
 
-img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
-                   origin='upper', cmap=color_bio, norm=norm_bio)
-
-img_ar_hs = ax.imshow(data_ar_hs, extent=extent_ar_hs, transform=ccrs.PlateCarree(),
-                      origin='upper', cmap=color_hs, norm=norm_hs)
-
-img_be_hs = ax.imshow(data_be_hs, extent=extent_be_hs, transform=ccrs.PlateCarree(),
-                      origin='upper', cmap=color_hs, norm=norm_hs)
+img_ar_n = ax.imshow(data_ar_n, extent=extent_ar_n, transform=ccrs.PlateCarree(),
+                      origin='upper', cmap=LikHarm, norm=norm_LikHarm)
 
 ax.coastlines(linewidth=0.2)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
 legend_patches = [
-    mpatches.Patch(color='gold', label='CDR in refugia'),
-    mpatches.Patch(color='crimson', label='CDR in refugia & hotspot'),
-    mpatches.Patch(color='gainsboro', label='Refugia'),
-    mpatches.Patch(color='grey', label='Hotspot')]
+    mpatches.Patch(color='gold', label='Potentially beneficial'),
+    mpatches.Patch(color='crimson', label='Likely harmful'),
+    mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
+    mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
 
 legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
-          loc='lower left', fontsize=9.5, columnspacing=0.8, handletextpad=0.5,
-          borderpad=1.5, frameon=True)
+                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                                   handletextpad=0.5, borderpad=1.5, frameon=True)
 
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
+
+ax.text(-177, -25, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
+        fontweight='bold', zorder=10)
+
+plt.show()
+
+# plot agreement for BECCS
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
+
+img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
+                   origin='upper', cmap=color_g1, norm=norm_g1)
+
+img_hs = ax.imshow(data_hs_resil, extent=extent_hs, transform=ccrs.PlateCarree(),
+                   origin='upper', cmap=color_g2, norm=norm_g2)
+
+img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
+                   origin='upper', cmap=PotBen, norm=norm_PotBen)
+
+img_be_n = ax.imshow(data_be_n, extent=extent_be_n, transform=ccrs.PlateCarree(),
+                     origin='upper', cmap=LikHarm, norm=norm_LikHarm)
+
+ax.coastlines(linewidth=0.2)
+ax.add_feature(cfeature.BORDERS, linewidth=0.2)
+
+legend_patches = [
+    mpatches.Patch(color='gold', label='Potentially beneficial'),
+    mpatches.Patch(color='crimson', label='Likely harmful'),
+    mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
+    mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
+
+legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
+                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+
+legend.get_frame().set_alpha(1)
+legend.get_frame().set_edgecolor('none')
+
+ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
+        fontweight='bold', zorder=10)
 
 plt.show()
 
