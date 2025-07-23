@@ -17,6 +17,7 @@ path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/
 path_gcam = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/gcam_maps')
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
+path_magpie = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/magpie_maps')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
 path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
@@ -39,6 +40,8 @@ lookup_image_nc_df = pd.read_csv(path_image / 'lookup_table_image_nc_files.csv')
 
 lookup_image_nc_pre = pd.read_csv(path_image /
                                   'lookup_table_image_nc_files_preprocessing.csv')
+
+lookup_magpie_nc_df = pd.read_csv(path_magpie / 'lookup_table_magpie_nc_files.csv')
 
 # specify project resolution
 target_res = (0.1666666666670000019, 0.1666666666670000019)  # uea resolution
@@ -224,6 +227,19 @@ for index, row in lookup_image_nc_pre.iterrows():
 
 start = time()
 
+# unpack MAgPIE NC files
+for index, row in lookup_magpie_nc_df.iterrows():
+    input_nc = row['nc_file']
+    band = row['band']
+    year = int(row['year'])
+    output_name = row['output_name']
+
+    ds = xr.open_dataset(path_magpie / input_nc)
+    ds = ds[band].sel(time=year)
+    ds = ds.rename({'lat': 'y', 'lon': 'x'})
+    ds.rio.to_raster(path_magpie / output_name)
+
+# unpack AIM, GLOBIOM and IMAGE NC files
 models = ['AIM', 'GLOBIOM', 'IMAGE']  # AIM, GLOBIOM, and IMAGE
 
 for model in models:
@@ -258,6 +274,24 @@ for model in models:
         with rs.open(path / output_name, 'w', **profile) as dst:
             dst.write(data, 1)
 
+# process geotiffs for AIM, GLOBIOM, IMAGE, and MAgPIE
+models = ['AIM', 'GLOBIOM', 'IMAGE', 'MAgPIE']  # AIM, GLOBIOM, IMAGE, and MAgPIE
+
+for model in models:
+
+    if model == 'GLOBIOM':
+        path = path_globiom
+        lookup_table = lookup_globiom_nc_df
+    elif model == 'AIM':
+        path = path_aim
+        lookup_table = lookup_aim_nc_df
+    elif model == 'IMAGE':
+        path = path_image
+        lookup_table = lookup_image_nc_df
+    elif model == 'MAgPIE':
+        path = path_magpie
+        lookup_table = lookup_magpie_nc_df
+
         # resample land use data to resolution of biodiv data
         tiff_resampler(path / output_name, target_res, 'nearest',
                        path / output_name)
@@ -270,7 +304,7 @@ for model in models:
 
     for scenario in scenarios:
         for year in years:
-            # only relevant for IMAGE
+            # only relevant for IMAGE and MAgPIE
             try:
                 energy_crops_ir = f'{model}_energy_crops_ir_{scenario}_{year}.tif'
                 energy_crops_rf = f'{model}_energy_crops_rf_{scenario}_{year}.tif'
