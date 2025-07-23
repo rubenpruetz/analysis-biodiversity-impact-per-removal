@@ -286,13 +286,13 @@ bioeng_wccs = pd.melt(bioeng_wccs, id_vars=['Model', 'Scenario'],
 
 cropland_eng_css = cropland_energy.copy()
 cropland_eng_css = pd.merge(cropland_eng_css, bioeng_wccs,
-                               on=['Model', 'Scenario', 'Year'])
+                            on=['Model', 'Scenario', 'Year'])
 cropland_eng_css['Value'] = cropland_eng_css['Value'] * bioeng_wccs['CCS_share']
 cropland_eng_css['Variable'] = 'Energy cropland (for BECCS)'
 
 cropland_eng_nocss = cropland_energy.copy()
 cropland_eng_nocss = pd.merge(cropland_eng_nocss, bioeng_wccs,
-                                 on=['Model', 'Scenario', 'Year'])
+                              on=['Model', 'Scenario', 'Year'])
 cropland_eng_nocss['Value'] = cropland_eng_nocss['Value'] * (1 - bioeng_wccs['CCS_share'])
 cropland_eng_nocss['Variable'] = 'Energy cropland (not for BECCS)'
 

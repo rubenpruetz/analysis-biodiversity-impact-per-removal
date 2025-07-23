@@ -227,56 +227,8 @@ for index, row in lookup_image_nc_pre.iterrows():
 
 start = time()
 
-# unpack MAgPIE NC files
-for index, row in lookup_magpie_nc_df.iterrows():
-    input_nc = row['nc_file']
-    band = row['band']
-    year = int(row['year'])
-    output_name = row['output_name']
-
-    ds = xr.open_dataset(path_magpie / input_nc)
-    ds = ds[band].sel(time=year)
-    ds = ds.rename({'lat': 'y', 'lon': 'x'})
-    ds.rio.write_crs('EPSG:4326', inplace=True)
-    ds.rio.to_raster(path_magpie / output_name)
-
-# unpack AIM, GLOBIOM and IMAGE NC files
-models = ['AIM', 'GLOBIOM', 'IMAGE']  # AIM, GLOBIOM, and IMAGE
-
-for model in models:
-
-    if model == 'GLOBIOM':
-        path = path_globiom
-        lookup_table = lookup_globiom_nc_df
-    elif model == 'AIM':
-        path = path_aim
-        lookup_table = lookup_aim_nc_df
-    elif model == 'IMAGE':
-        path = path_image
-        lookup_table = lookup_image_nc_df
-
-    for index, row in lookup_table.iterrows():  # use lookup to resample uea files
-        input_file = row['nc_file']
-        band = row['band']
-        output_name = row['output_name']
-
-        nc_file = rioxarray.open_rasterio(path / input_file,
-                                          decode_times=False,
-                                          band_as_variable=True)
-        data_array_proj = nc_file.rio.write_crs('EPSG:4326')
-        data_array_proj = data_array_proj['band_' + str(band)]
-        data_array_proj.rio.to_raster(path / 'temp_large_file.tif',
-                                      driver='GTiff')
-
-        with rs.open(path / 'temp_large_file.tif') as src:
-            data = src.read(1)
-            profile = src.profile.copy()
-            profile.update(count=1)
-        with rs.open(path / output_name, 'w', **profile) as dst:
-            dst.write(data, 1)
-
-# process geotiffs for AIM, GLOBIOM, IMAGE, and MAgPIE
-models = ['AIM', 'GLOBIOM', 'IMAGE', 'MAgPIE']  # AIM, GLOBIOM, IMAGE, and MAgPIE
+# unpack and preprocess AIM, GLOBIOM, IMAGE, and MAgPIE NC files
+models = ['AIM', 'GLOBIOM', 'IMAGE', 'MAgPIE']  # AIM, GLOBIOM, and IMAGE
 
 for model in models:
 
@@ -293,8 +245,28 @@ for model in models:
         path = path_magpie
         lookup_table = lookup_magpie_nc_df
 
-    for index, row in lookup_table.iterrows():
+    for index, row in lookup_table.iterrows():  # use lookup to resample uea files
+        input_file = row['nc_file']
+        band = row['band']
+        year = row['year']
         output_name = row['output_name']
+
+        nc_file = rioxarray.open_rasterio(path / input_file,
+                                          decode_times=False,
+                                          band_as_variable=True)
+        data_array_proj = nc_file.rio.write_crs('EPSG:4326')
+        data_array_proj = data_array_proj[band]
+        if model == 'MAgPIE':
+            data_array_proj = data_array_proj.sel(time=year)
+        data_array_proj.rio.to_raster(path / 'temp_large_file.tif',
+                                      driver='GTiff')
+
+        with rs.open(path / 'temp_large_file.tif') as src:
+            data = src.read(1)
+            profile = src.profile.copy()
+            profile.update(count=1)
+        with rs.open(path / output_name, 'w', **profile) as dst:
+            dst.write(data, 1)
 
         # resample land use data to resolution of biodiv data
         tiff_resampler(path / output_name, target_res, 'nearest',
