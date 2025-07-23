@@ -237,6 +237,7 @@ for index, row in lookup_magpie_nc_df.iterrows():
     ds = xr.open_dataset(path_magpie / input_nc)
     ds = ds[band].sel(time=year)
     ds = ds.rename({'lat': 'y', 'lon': 'x'})
+    ds.rio.write_crs('EPSG:4326', inplace=True)
     ds.rio.to_raster(path_magpie / output_name)
 
 # unpack AIM, GLOBIOM and IMAGE NC files
@@ -291,6 +292,9 @@ for model in models:
     elif model == 'MAgPIE':
         path = path_magpie
         lookup_table = lookup_magpie_nc_df
+
+    for index, row in lookup_table.iterrows():
+        output_name = row['output_name']
 
         # resample land use data to resolution of biodiv data
         tiff_resampler(path / output_name, target_res, 'nearest',
