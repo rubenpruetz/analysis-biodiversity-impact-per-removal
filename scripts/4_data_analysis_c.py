@@ -174,12 +174,16 @@ plt.show()
 # make files from different models binary (cell threshold >= 5% of max area)
 for model in models:
     for cdr_option in cdr_options:
-        if model == 'GLOBIOM':
-            path = path_globiom
-        elif model == 'AIM':
+        if model == 'AIM':
             path = path_aim
+        elif model == 'GCAM':
+            path = path_gcam
+        elif model == 'GLOBIOM':
+            path = path_globiom
         elif model == 'IMAGE':
             path = path_image
+        elif model == 'MAgPIE':
+            path = path_magpie
 
         land_in = f'{model}_{cdr_option}_SSP2-26_2100.tif'  # change scenario if required
         land_temp = f'{model}_{cdr_option}_SSP2-26_2100_temp.tif'
@@ -194,7 +198,7 @@ for model in models:
 
         land_allo_share = land_in / land_max  # estimate cell shares allocated
         land_allo_share.rio.to_raster(path / land_temp , driver='GTiff')
-        binary_converter(land_temp, path, 0.05, land_out)  # adjust threshold if needed
+        binary_converter(land_temp, path, 0.1, land_out)  # adjust threshold if needed
 
 # load area-based criteria for beneficia/harmful effects on biodiversity
 ref_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_suit.tif', masked=True)
@@ -204,9 +208,11 @@ beccs_not_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_not_suit.tif', 
 
 # calculate model agreement in refugia and check if likely positive or negative
 for cdr_option in cdr_options:
-    aim_land = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
-    globiom_land = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
-    image_land = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
+    aim_lc = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
+    gcam_lc = rioxarray.open_rasterio(path_gcam / f'GCAM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
+    globiom_lc = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
+    image_lc = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
+    magpie_lc = rioxarray.open_rasterio(path_magpie / f'MAgPIE_{cdr_option}_SSP2-26_2100_bin.tif', masked=True)
 
     if cdr_option == 'Afforestation':
         suit = ref_suit
@@ -215,15 +221,18 @@ for cdr_option in cdr_options:
         suit = beccs_suit
         not_suit = beccs_not_suit
 
-    aim_land = aim_land.rio.reproject_match(res_bio)
-    globiom_land = globiom_land.rio.reproject_match(res_bio)
-    image_land = image_land.rio.reproject_match(res_bio)
+    aim_lc = aim_lc.rio.reproject_match(res_bio)
+    gcam_lc = gcam_lc.rio.reproject_match(res_bio)
+    globiom_lc = globiom_lc.rio.reproject_match(res_bio)
+    image_lc = image_lc.rio.reproject_match(res_bio)
+    magpie_lc = magpie_lc.rio.reproject_match(res_bio)
     suit = suit.rio.reproject_match(res_bio)
     not_suit = not_suit.rio.reproject_match(res_bio)
 
-    agree_in_bio_pos = (aim_land + globiom_land + image_land) * res_bio * suit
-    agree_in_bio_neg = (aim_land + globiom_land + image_land) * res_bio * not_suit
+    agree_in_bio_pos = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * suit
+    agree_in_bio_neg = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * not_suit
 
+    # at least three-of-five models need to agree
     agree_in_bio_pos.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_suit.tif', driver='GTiff')
     binary_converter(f'mi_{cdr_option}_SSP2-26_2100_suit.tif', path_all, 2,
                      f'mi_{cdr_option}_SSP2-26_2100_suit.tif')
