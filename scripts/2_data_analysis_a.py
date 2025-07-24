@@ -294,29 +294,3 @@ for removal_step in removal_steps:
 
                 with rs.open(path / output_name, "w", **profile_updated) as dst:
                     dst.write(tiff_target.astype(rs.float32), 1)
-
-# %% generate spatial BECCS file per scenario per year
-
-beccs_land_non_zero = beccs_land[beccs_land['Land'] > 0]
-
-for index, row in beccs_land_non_zero.iterrows():
-    scenario = row['Scenario']
-    year = row['Year']
-    fraction = row['Fraction']
-
-    input_name = f'{model}_Bioenergy_{scenario}_{year}.tif'
-    output_name = f'{model}_BECCS_{scenario}_{year}.tif'
-
-    with rs.open(path / input_name) as src_input:
-        # read raster data and geospatial information
-        input_tiff = src_input.read(1)
-        profile_input = src_input.profile
-
-        # multiply bioenery cells by BECCS fraction assuming even distribution
-        fract_tiff = input_tiff * fraction
-
-        profile_updated = profile_input.copy()
-        profile_updated.update(dtype=rs.float32)
-
-        with rs.open(path / output_name, "w", **profile_updated) as dst:
-            dst.write(fract_tiff.astype(rs.float32), 1)
