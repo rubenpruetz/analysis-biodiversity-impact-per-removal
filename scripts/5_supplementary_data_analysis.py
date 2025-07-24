@@ -15,12 +15,12 @@ path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
-energy_crop_share = pd.read_csv(path_all / 'share_energy_crops_estimates.csv')
 
 # define lists
 years = ['2010', '2020', '2030', '2040', '2050', '2060', '2070', '2080',
          '2090', '2100']
-models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1']
+models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1', 'GCAM 4.2',
+          'REMIND-MAgPIE 1.5']
 scenarios = ['SSP1-19', 'SSP1-26', 'SSP1-45', 'SSP2-19', 'SSP2-26', 'SSP2-45',
              'SSP3-45']
 variables = ['Land Cover|Built-up Area', 'Land Cover|Cropland',
@@ -314,7 +314,9 @@ lc_data['Year'] = lc_data['Year'].astype(int)
 
 lc_data.replace({'Model': {'AIM/CGE 2.0': 'AIM',
                            'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
-                           'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
+                           'IMAGE 3.0.1': 'IMAGE',
+                           'GCAM 4.2': 'GCAM',
+                           'REMIND-MAgPIE 1.5': 'MAgPIE'}}, inplace=True)
 
 lc_data.replace({'Variable': {'Land Cover|Built-up Area': 'Built-up',
                               'Land Cover|Forest': 'Forest',
@@ -328,36 +330,54 @@ var_pal = {'Built-up': 'dimgrey',
            'Pasture': 'gold'}
 all_vars = sorted(lc_data['Variable'].unique())
 
-fig, axes = plt.subplots(3, 3, figsize=(9, 9), sharex=True, sharey=True)
+fig, axes = plt.subplots(5, 3, figsize=(8, 9), sharex=True, sharey=True)
 sns.lineplot(data=lc_data.query('Model == "AIM" & RCP == "19"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=True, ax=axes[0, 0])
-sns.lineplot(data=lc_data.query('Model == "GLOBIOM" & RCP == "19"'),
+sns.lineplot(data=lc_data.query('Model == "GCAM" & RCP == "19"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 0])
-sns.lineplot(data=lc_data.query('Model == "IMAGE" & RCP == "19"'),
+sns.lineplot(data=lc_data.query('Model == "GLOBIOM" & RCP == "19"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 0])
+sns.lineplot(data=lc_data.query('Model == "IMAGE" & RCP == "19"'),
+             x='Year', y='Change', hue='Variable', palette=var_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[3, 0])
+sns.lineplot(data=lc_data.query('Model == "MAgPIE" & RCP == "19"'),
+             x='Year', y='Change', hue='Variable', palette=var_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[4, 0])
 
 sns.lineplot(data=lc_data.query('Model == "AIM" & RCP == "26"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 1])
-sns.lineplot(data=lc_data.query('Model == "GLOBIOM" & RCP == "26"'),
+sns.lineplot(data=lc_data.query('Model == "GCAM" & RCP == "26"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 1])
-sns.lineplot(data=lc_data.query('Model == "IMAGE" & RCP == "26"'),
+sns.lineplot(data=lc_data.query('Model == "GLOBIOM" & RCP == "26"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 1])
+sns.lineplot(data=lc_data.query('Model == "IMAGE" & RCP == "26"'),
+             x='Year', y='Change', hue='Variable', palette=var_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[3, 1])
+sns.lineplot(data=lc_data.query('Model == "MAgPIE" & RCP == "26"'),
+             x='Year', y='Change', hue='Variable', palette=var_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[4, 1])
 
 sns.lineplot(data=lc_data.query('Model == "AIM" & RCP == "45"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 2])
-sns.lineplot(data=lc_data.query('Model == "GLOBIOM" & RCP == "45"'),
+sns.lineplot(data=lc_data.query('Model == "GCAM" & RCP == "45"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 2])
-sns.lineplot(data=lc_data.query('Model == "IMAGE" & RCP == "45"'),
+sns.lineplot(data=lc_data.query('Model == "GLOBIOM" & RCP == "45"'),
              x='Year', y='Change', hue='Variable', palette=var_pal,
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 2])
+sns.lineplot(data=lc_data.query('Model == "IMAGE" & RCP == "45"'),
+             x='Year', y='Change', hue='Variable', palette=var_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[3, 2])
+sns.lineplot(data=lc_data.query('Model == "MAgPIE" & RCP == "45"'),
+             x='Year', y='Change', hue='Variable', palette=var_pal,
+             errorbar=('pi', 100), estimator='median', legend=False, ax=axes[4, 2])
 
 for ax in axes.flat:
     ax.set_xlabel('')
@@ -369,20 +389,22 @@ for ax in axes.flat:
     ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
 
 axes[0, 0].set_ylabel('AIM', fontsize=11)
-axes[1, 0].set_ylabel('GLOBIOM', fontsize=11)
-axes[2, 0].set_ylabel('IMAGE', fontsize=11)
+axes[1, 0].set_ylabel('GCAM', fontsize=11)
+axes[2, 0].set_ylabel('GLOBIOM', fontsize=11)
+axes[3, 0].set_ylabel('IMAGE', fontsize=11)
+axes[4, 0].set_ylabel('MAgPIE', fontsize=11)
 
 axes[0, 0].set_title('1.5 °C')
 axes[0, 1].set_title('2 °C')
 axes[0, 2].set_title('Current Policies')
 
-axes[0, 0].legend(bbox_to_anchor=(-0.05, 1.43), loc='upper left', ncols=3,
+axes[0, 0].legend(bbox_to_anchor=(-0.05, 1.75), loc='upper left', ncols=3,
                   columnspacing=1, handletextpad=0.4, fontsize=11)
 
 fig.supylabel(f'Land cover change from 2010 [Mkm$^2$] (SSP1-SSP3 range as shading)',
               x=0.03, va='center', ha='center')
 
 plt.subplots_adjust(hspace=0.1)
-plt.subplots_adjust(wspace=0.25)
+plt.subplots_adjust(wspace=0.3)
 sns.despine()
 plt.show()
