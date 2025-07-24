@@ -21,6 +21,7 @@ path_magpie = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversi
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
 path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
+path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 
 # load lookup table containing nc file information
 lookup_resample = pd.read_csv(
@@ -42,6 +43,8 @@ lookup_image_nc_pre = pd.read_csv(path_image /
                                   'lookup_table_image_nc_files_preprocessing.csv')
 
 lookup_magpie_nc_df = pd.read_csv(path_magpie / 'lookup_table_magpie_nc_files.csv')
+
+landfile_lookup = pd.read_csv(path_all / 'lookup_table_ar_bioenergy_files_all_models.csv')
 
 # specify project resolution
 target_res = (0.1666666666670000019, 0.1666666666670000019)  # uea resolution
@@ -228,7 +231,7 @@ for index, row in lookup_image_nc_pre.iterrows():
 start = time()
 
 # unpack and preprocess AIM, GLOBIOM, IMAGE, and MAgPIE NC files
-models = ['AIM', 'GLOBIOM', 'IMAGE', 'MAgPIE']  # AIM, GLOBIOM, and IMAGE
+models = ['AIM', 'GLOBIOM', 'IMAGE', 'MAgPIE']
 
 for model in models:
 
@@ -373,6 +376,114 @@ for model in models:
 
 end = time()
 print(f'Runtime {(end - start) / 60} min')
+
+# %% generate BECCS files based on biomass-based energy with/without CCS
+models = ['AIM', 'GCAM', 'GLOBIOM', 'IMAGE', 'MAgPIE']
+
+for model in models:
+
+    if model == 'GLOBIOM':
+        path = path_globiom
+        model_setup = 'MESSAGE-GLOBIOM 1.0'
+    elif model == 'AIM':
+        path = path_aim
+        model_setup = 'AIM/CGE 2.0'
+    elif model == 'IMAGE':
+        path = path_image
+        model_setup = 'IMAGE 3.0.1'
+    elif model == 'GCAM':
+        path = path_gcam
+        model_setup = 'GCAM 4.2'
+    elif model == 'MAgPIE':
+        path = path_magpie
+        model_setup = 'REMIND-MAgPIE 1.5'
+
+    path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
+    ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
+    scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
+                 'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
+                 'SSP2-60', 'SSP3-Baseline', 'SSP3-34', 'SSP3-45', 'SSP3-60']
+
+    numeric_cols20 = [str(year) for year in range(2020, 2110, 10)]
+    ar6_db = ar6_db.loc[ar6_db['Model'].isin([model_setup]) & ar6_db['Scenario'].isin(scenarios)]
+
+    # calculate share of bioenergy for BECCS based on biomass with/without CCS
+    bioeng_ncss = ar6_db.query('Variable == "Primary Energy|Biomass|Modern|w/o CCS"').reset_index(drop=True)
+    bioeng_ncss[numeric_cols20] = bioeng_ncss[numeric_cols20].round(2)
+    bioeng_tot = ar6_db.query('Variable == "Primary Energy|Biomass"').reset_index(drop=True)
+    bioeng_tot[numeric_cols20] = bioeng_tot[numeric_cols20].round(2)
+
+    bioeng_wccs = bioeng_tot[['Scenario']].copy()
+    bioeng_wccs[numeric_cols20] = 1 - (bioeng_ncss[numeric_cols20] / bioeng_tot[numeric_cols20])
+    bioeng_wccs['Variable'] = 'Removal fraction'
+    bioeng_wccs = pd.melt(bioeng_wccs,
+                          id_vars=['Scenario', 'Variable'],
+                          var_name='Year',
+                          value_name='Fraction')
+
+    # filter bioenergy related files from lookup table
+    be_lookup = landfile_lookup[landfile_lookup['mitigation_option'] == 'Bioenergy plantation']
+    be_land = pd.DataFrame(columns=['Scenario', 'Year', 'Land'])
+
+    for index, row in be_lookup.iterrows():  # calculate bioenergy land per scenario
+        input_nc = row['file_name']
+        scenario = row['scenario']
+        year = row['year']
+
+        try:
+            land_use = rioxarray.open_rasterio(path / f'{model}_{input_nc}',
+                                               masked=True)
+            tot_cdr_area = pos_val_summer(land_use, squeeze=True)
+
+            be_land = pd.concat([be_land, pd.DataFrame({
+                'Scenario': [scenario],
+                'Year': [year],
+                'Land': [tot_cdr_area]
+            })], ignore_index=True)
+
+        except Exception as e:
+            print(f'Error processing: {e}')
+            continue
+
+    be_land['Variable'] = 'Land demand'
+    be_land['Year'] = be_land['Year'].apply(pd.to_numeric)
+    bioeng_wccs['Year'] = bioeng_wccs['Year'].apply(pd.to_numeric)
+
+    beccs_land = pd.merge(be_land[['Scenario', 'Year', 'Land', 'Variable']],
+                          bioeng_wccs[['Scenario', 'Year', 'Fraction']],
+                          on=['Scenario', 'Year'])
+
+    beccs_land['Land'] = beccs_land['Land'] * beccs_land['Fraction']
+
+    # generate spatial BECCS file per scenario per year
+    beccs_land_non_zero = beccs_land[beccs_land['Land'] > 0]
+
+    for index, row in beccs_land_non_zero.iterrows():
+        scenario = row['Scenario']
+        year = row['Year']
+        fraction = row['Fraction']
+
+        try:
+            input_name = f'{model}_Bioenergy_{scenario}_{year}.tif'
+            output_name = f'{model}_BECCS_{scenario}_{year}.tif'
+
+            with rs.open(path / input_name) as src_input:
+                # read raster data and geospatial information
+                input_tiff = src_input.read(1)
+                profile_input = src_input.profile
+
+                # multiply bioenery cells by BECCS fraction assuming even distribution
+                fract_tiff = input_tiff * fraction
+
+                profile_updated = profile_input.copy()
+                profile_updated.update(dtype=rs.float32)
+
+                with rs.open(path / output_name, "w", **profile_updated) as dst:
+                    dst.write(fract_tiff.astype(rs.float32), 1)
+
+        except Exception as e:
+            print(f'Error processing: {e}')
+            continue
 
 # %% process maps showing potential for reforestation and BECCS
 
