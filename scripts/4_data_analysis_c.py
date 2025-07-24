@@ -3,6 +3,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import seaborn as sns
 import rioxarray
@@ -15,9 +16,11 @@ plt.rcParams.update({'figure.dpi': 600})
 
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
-path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
+path_gcam = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/gcam_maps')
+path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
+path_magpie = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/magpie_maps')
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
 path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
@@ -31,7 +34,7 @@ hotspot_repro = hotspots.rio.reproject_match(res_bio)
 hs_resil = hotspot_repro * res_bio
 
 # estimate reduction in land allocation when excluding areas
-models = ['AIM', 'GLOBIOM', 'IMAGE']
+models = ['AIM', 'GCAM', 'GLOBIOM', 'IMAGE', 'MAgPIE']
 cdr_options = ['Afforestation', 'BECCS']
 years = [2030, 2050, 2100]
 
@@ -41,12 +44,16 @@ for model in models:
     for cdr_option in cdr_options:
         for year in years:
 
-            if model == 'GLOBIOM':
-                path = path_globiom
-            elif model == 'AIM':
+            if model == 'AIM':
                 path = path_aim
+            elif model == 'GCAM':
+                path = path_gcam
+            elif model == 'GLOBIOM':
+                path = path_globiom
             elif model == 'IMAGE':
                 path = path_image
+            elif model == 'MAgPIE':
+                path = path_magpie
 
             try:
                 cdr_land = f'{model}_{cdr_option}_SSP2-26_{year}.tif'  # change scenario if required
@@ -88,7 +95,7 @@ exclu_df_sum = exclu_df.groupby(['Model', 'Year'])[['CDR_land',
                                                     'CDR_in_hs_res',
                                                     'CDR_in_bio']].agg('sum')
 exclu_df_sum.reset_index(inplace=True)
-exclu_df_sum['CDR_option'] = 'Forestation & BECCS'
+exclu_df_sum['CDR_option'] = 'Both'
 exclu_df = pd.concat([exclu_df, exclu_df_sum])
 
 # calculate share of overlap of CDR land with biodiversity criteria
@@ -103,12 +110,13 @@ exclu_df = pd.melt(exclu_df, id_vars=['Model', 'CDR_option', 'Year'],
 
 exclu_df.replace({'CDR_option': {'Afforestation': 'Forestation'}}, inplace=True)
 
+# plot reduction in land allocated for CDR
 fig, axes = plt.subplots(1, 3, figsize=(12, 6), sharex=True, sharey=True)
 
-model_colors = {'AIM': 'darkslategrey', 'GLOBIOM': 'blueviolet',
-                'IMAGE': 'royalblue'}
+model_colors = {'AIM': 'darkslategrey', 'GCAM': '#997700', 'GLOBIOM': 'blueviolet',
+                'IMAGE': 'royalblue', 'MAgPIE': '#994455'}
 cdr_colors = {'Forestation': 'crimson', 'BECCS': 'darkorange',
-              'Forestation & BECCS': 'lightsteelblue'}
+              'Both': 'lightsteelblue'}
 
 sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs_res"'), x='Year',
             y='Value', hue='CDR_option', legend=True, alpha=0.6, palette=cdr_colors,
@@ -137,19 +145,22 @@ for model, color in model_colors.items():
                   x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
                   s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[2])
 
-model_patches = [mpatches.Patch(color=color, label=model) for model, color in model_colors.items()]
-legend1 = axes[0].legend(handles=model_patches, bbox_to_anchor=(1.85, 1.1),
-                         loc='upper left', ncols=5, columnspacing=0.8,
+model_patches = [Line2D([0], [0], marker='o', color='w', label=label,
+                        markerfacecolor=color, markeredgecolor='none', markersize=10)
+                 for label, color in model_colors.items()]
+
+legend1 = axes[0].legend(handles=model_patches, bbox_to_anchor=(1.3, 1.1),
+                         loc='upper left', ncols=5, columnspacing=0.6,
                          handletextpad=0.5, frameon=False, fontsize=12)
 
 axes[0].legend(bbox_to_anchor=(-0.05, 1.1), loc='upper left', ncols=5,
-               columnspacing=0.8, handletextpad=0.5, frameon=False, fontsize=12)
+               columnspacing=0.6, handletextpad=0.5, frameon=False, fontsize=12)
 axes[0].add_artist(legend1)
 
-axes[0].set_xlabel('Exclusion of land within 1.8 °C resilient \nbiodiversity hotspots', fontsize=11)
-axes[1].set_xlabel('Exclusion of land within current \nbiodiversity hotspots', fontsize=11)
-axes[2].set_xlabel('Exclusion of land within 1.8 °C resilient \nclimate refugia', fontsize=11)
-axes[0].set_ylabel(f'Share of CDR land not available for allocation in SSP2-26 [%] \n(median and min-max range across models)',
+axes[0].set_xlabel('No CDR within 1.8 °C resilient \nbiodiversity hotspots', fontsize=11)
+axes[1].set_xlabel('No CDR within current \nbiodiversity hotspots', fontsize=11)
+axes[2].set_xlabel('No CDR within 1.8 °C resilient \nclimate refugia', fontsize=11)
+axes[0].set_ylabel(f'Reduction in land allocated for CDR in SSP2-26 [%] \n(median and individual model estimate)',
                    fontsize=12)
 
 for ax in axes.flat:
