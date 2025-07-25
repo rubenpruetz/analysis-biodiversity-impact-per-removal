@@ -226,6 +226,38 @@ for index, row in lookup_image_nc_pre.iterrows():
     nc_file_xr.coords['time_lc'] = (('time_lc'), np.arange(len(nc_file_xr.coords['time_lc'])))
     nc_file_xr.to_netcdf(path_image / output_name)
 
+# calculate maximum land area for IMAGE based on available area file
+nc_file_xr = xr.open_dataset(path_image / 'GAREACELLNOWATER_30MIN.NC')
+nc_file_xr = nc_file_xr[['longitude', 'latitude', 'time', 'GAREACELLNOWATER_30MIN']]
+nc_file_xr = nc_file_xr.transpose('time', 'latitude', 'longitude')
+nc_file_xr.to_netcdf(path_image / '_GAREACELLNOWATER_30MIN.NC')
+
+nc_file = rioxarray.open_rasterio(path_image / '_GAREACELLNOWATER_30MIN.NC',
+                                  decode_times=False,
+                                  band_as_variable=True)
+data_array_proj = nc_file.rio.write_crs('EPSG:4326')
+data_array_proj = data_array_proj['band_1']
+data_array_proj.rio.to_raster(path_image / '_GAREACELLNOWATER_30MIN.tif',
+                              driver='GTiff')
+
+with rs.open(path_image / '_GAREACELLNOWATER_30MIN.tif') as src:
+    data = src.read(1)
+    profile = src.profile.copy()
+    profile.update(count=1)
+with rs.open(path_image / '_GAREACELLNOWATER_30MIN.tif', 'w', **profile) as dst:
+    dst.write(data, 1)
+
+tiff_resampler(path_image / '_GAREACELLNOWATER_30MIN.tif', target_res, 'nearest',
+               path_image / '_GAREACELLNOWATER_30MIN.tif')
+
+original = 0.5  # original file resolution
+target = 0.1666666666670000019  # target resolution for analysis
+scaling_factor = (original / target)**2  # scaling factor for resampling
+
+max_area = rioxarray.open_rasterio(path_image / '_GAREACELLNOWATER_30MIN.tif', masked=True)
+max_area = max_area / scaling_factor
+max_area.rio.to_raster(path_image / 'IMAGE_max_land_area_km2.tif')
+
 # %% write crs, convert to tif, and create individual tifs per year and variable
 
 start = time()
