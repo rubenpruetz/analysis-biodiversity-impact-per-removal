@@ -258,6 +258,33 @@ max_area = rioxarray.open_rasterio(path_image / '_GAREACELLNOWATER_30MIN.tif', m
 max_area = max_area / scaling_factor
 max_area.rio.to_raster(path_image / 'IMAGE_max_land_area_km2.tif')
 
+# use same file for AIM area as this gives better aligned results with SSP Db
+max_area.rio.to_raster(path_aim / 'AIM_max_land_area_km2.tif')  
+
+# calculate maximum land area for MAgPIE based on available area file
+nc_file = rioxarray.open_rasterio(path_magpie / 'grid_cell_land_area.nc',
+                                  decode_times=False,
+                                  band_as_variable=True)
+data_array_proj = nc_file.rio.write_crs('EPSG:4326')
+data_array_proj = data_array_proj['band_1']
+data_array_proj.rio.to_raster(path_magpie / 'grid_cell_land_area.tif',
+                              driver='GTiff')
+
+with rs.open(path_magpie / 'grid_cell_land_area.tif') as src:
+    data = src.read(1)
+    profile = src.profile.copy()
+    profile.update(count=1)
+with rs.open(path_magpie / 'grid_cell_land_area.tif', 'w', **profile) as dst:
+    dst.write(data, 1)
+
+# resample land use data to resolution of biodiv data
+tiff_resampler(path_magpie / 'grid_cell_land_area.tif', target_res, 'nearest',
+               path_magpie / 'grid_cell_land_area.tif')
+
+max_area = rioxarray.open_rasterio(path_magpie / 'grid_cell_land_area.tif', masked=True)
+max_area = (max_area / scaling_factor) * 10000  # adjust unit
+max_area.rio.to_raster(path_magpie / 'MAgPIE_max_land_area_km2.tif')
+
 # %% write crs, convert to tif, and create individual tifs per year and variable
 
 start = time()
@@ -375,17 +402,16 @@ for model in models:
 
             gain_yr.rio.to_raster(path / ar_file_yr, driver='GTiff')
 
-    # calculate grid area based on arbitrarily chosen input file
-    arbit_input = rioxarray.open_rasterio(
-        path / f'{model}_Afforestation_SSP1-19_2050.tif', masked=True)
+    # calculate grid area based on arbitrarily chosen input file (not for IMAGE)
+    if model not in ['IMAGE', 'MAgPIE', 'AIM']:
+        arbit_input = rioxarray.open_rasterio(
+            path / f'{model}_Afforestation_SSP1-19_2050.tif', masked=True)
+        bin_land = arbit_input.where(arbit_input.isnull(), 1)  # all=1 if not nodata
+        bin_land.rio.to_raster(path / 'bin_land.tif', driver='GTiff')
+        land_area_calculation(path, 'bin_land.tif', f'{model}_max_land_area_km2.tif')
 
-    bin_land = arbit_input.where(arbit_input.isnull(), 1)  # all=1 if not nodata
-    bin_land.rio.to_raster(path / 'bin_land.tif', driver='GTiff')
-
-    land_area_calculation(path, 'bin_land.tif', f'{model}_max_land_area_km2.tif')
-    max_land_area = rioxarray.open_rasterio(path /
-                                            f'{model}_max_land_area_km2.tif',
-                                            masked=True)
+    max_area = rioxarray.open_rasterio(path / f'{model}_max_land_area_km2.tif',
+                                       masked=True)
 
     # calculate land use areas based on total surface and land use fractions
     for land_info in land_infos:
@@ -397,8 +423,8 @@ for model in models:
                     land_fract = rioxarray.open_rasterio(
                         path / processing, masked=True)
 
-                    land_fract = land_fract.rio.reproject_match(max_land_area)
-                    land_area = land_fract * max_land_area
+                    land_fract = land_fract.rio.reproject_match(max_area)
+                    land_area = land_fract * max_area
 
                     land_area.rio.to_raster(path / processing,
                                             driver='GTiff')
