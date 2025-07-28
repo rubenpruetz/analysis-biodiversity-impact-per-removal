@@ -574,8 +574,6 @@ for model in models:
 sf_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/wab')
 admin_sf = shapefile.Reader(sf_path / 'world-administrative-boundaries.shp')
 
-ssps = ['SSP1']
-
 for model in models:
     if model == 'GLOBIOM':
         path = path_globiom

@@ -95,48 +95,34 @@ for model in models:
     beccs_removal['Model'] = model
     beccs_removal.to_csv(path /f'{model}_beccs_removal.csv', index=False)
 
-    # calculate share of bioenergy for BECCS based on biomass with/without CCS
-    bioeng_ncss = ar6_db.query('Variable == "Primary Energy|Biomass|Modern|w/o CCS"').reset_index(drop=True)
-    bioeng_ncss[numeric_cols20] = bioeng_ncss[numeric_cols20].round(2)
-    bioeng_tot = ar6_db.query('Variable == "Primary Energy|Biomass"').reset_index(drop=True)
-    bioeng_tot[numeric_cols20] = bioeng_tot[numeric_cols20].round(2)
-
-    bioeng_wccs = bioeng_tot[['Scenario']].copy()
-    bioeng_wccs[numeric_cols20] = 1 - (bioeng_ncss[numeric_cols20] / bioeng_tot[numeric_cols20])
-    bioeng_wccs['Variable'] = 'Removal fraction'
-    bioeng_wccs = pd.melt(bioeng_wccs,
-                          id_vars=['Scenario', 'Variable'],
-                          var_name='Year',
-                          value_name='Fraction')
-
-    # filter bioenergy related files from lookup table
+    # filter BECCS related files from lookup table
     be_lookup = landfile_lookup[landfile_lookup['mitigation_option'] == 'Bioenergy plantation']
-    be_land = pd.DataFrame(columns=['Scenario', 'Year', 'Land'])
+    beccs_lookup = be_lookup.copy()
+    beccs_lookup['file_name'] = beccs_lookup['file_name'].str.replace('Bioenergy', 'BECCS')
 
-    for index, row in be_lookup.iterrows():  # calculate bioenergy land per scenario
+    beccs_land = pd.DataFrame(columns=['Scenario', 'Year', 'Land'])
+
+    for index, row in beccs_lookup.iterrows():  # calculate bioenergy land per scenario
         input_nc = row['file_name']
         scenario = row['scenario']
         year = row['year']
 
-        land_use = rioxarray.open_rasterio(path / f'{model}_{input_nc}',
-                                           masked=True)
-        tot_cdr_area = pos_val_summer(land_use, squeeze=True)
+        try:
+            land_use = rioxarray.open_rasterio(path / f'{model}_{input_nc}',
+                                               masked=True)
+            tot_cdr_area = pos_val_summer(land_use, squeeze=True)
 
-        be_land = pd.concat([be_land, pd.DataFrame({
-            'Scenario': [scenario],
-            'Year': [year],
-            'Land': [tot_cdr_area]
-        })], ignore_index=True)
+            beccs_land = pd.concat([beccs_land, pd.DataFrame({
+                'Scenario': [scenario],
+                'Year': [year],
+                'Land': [tot_cdr_area]
+            })], ignore_index=True)
+        except Exception as e:
+            print(f'Error processing BECCS: {e}')
+            continue
 
-    be_land['Variable'] = 'Land demand'
-    be_land['Year'] = be_land['Year'].apply(pd.to_numeric)
-    bioeng_wccs['Year'] = bioeng_wccs['Year'].apply(pd.to_numeric)
-
-    beccs_land = pd.merge(be_land[['Scenario', 'Year', 'Land', 'Variable']],
-                          bioeng_wccs[['Scenario', 'Year', 'Fraction']],
-                          on=['Scenario', 'Year'])
-
-    beccs_land['Land'] = beccs_land['Land'] * beccs_land['Fraction']
+    beccs_land['Variable'] = 'Land demand'
+    beccs_land['Year'] = beccs_land['Year'].apply(pd.to_numeric)
 
     # compute land-per-removal, removal, and land for AR and BECCS
     lpr_ar = process_data(ar_land, ar_removal, 'AR')
@@ -257,17 +243,9 @@ for model in models:
             yr_up = row['Year_up']
             yr_target = row['yr_target']
 
-            lower_tiff = f'{model}_Bioenergy_{ssp}-{rcp}_{yr_low}.tif'
-            upper_tiff = f'{model}_Bioenergy_{ssp}-{rcp}_{yr_up}.tif'
+            lower_tiff = f'{model}_BECCS_{ssp}-{rcp}_{yr_low}.tif'
+            upper_tiff = f'{model}_BECCS_{ssp}-{rcp}_{yr_up}.tif'
             output_name = f'{model}_BECCS_{ssp}-{rcp}_{removal_step}GtCO2.tif'
-
-            # get BECCS fraction of bioenergy for respective year and scenario
-            lower_fract = float(beccs_land.loc[(beccs_land['Year'] == yr_low) &
-                                               (beccs_land['Scenario'] == f'{ssp}-{rcp}'),
-                                               'Fraction'].iloc[0])
-            upper_fract = float(beccs_land.loc[(beccs_land['Year'] == yr_up) &
-                                               (beccs_land['Scenario'] == f'{ssp}-{rcp}'),
-                                               'Fraction'].iloc[0])
 
             with rs.open(path / lower_tiff) as src_low:
                 with rs.open(path / upper_tiff) as src_up:
@@ -276,12 +254,8 @@ for model in models:
                     upper_tiff = src_up.read(1)
                     profile_lower = src_low.profile
 
-                    lower_tiff = lower_tiff * 0.000001  # km2 to Mkm2
-                    upper_tiff = upper_tiff * 0.000001  # km2 to Mkm2
-
-                    # multiply bioenery cells by BECCS fraction assuming even distribution
-                    lower_beccs = lower_tiff * lower_fract
-                    upper_beccs = upper_tiff * upper_fract
+                    lower_beccs = lower_tiff * 0.000001  # km2 to Mkm2
+                    upper_beccs = upper_tiff * 0.000001  # km2 to Mkm2
 
                     yr_diff = yr_up - yr_low  # diff of known years
                     tiff_diff = upper_beccs - lower_beccs  # diff of known tiffs
