@@ -259,7 +259,7 @@ max_area = max_area / scaling_factor
 max_area.rio.to_raster(path_image / 'IMAGE_max_land_area_km2.tif')
 
 # use same file for AIM area as this gives better aligned results with SSP Db
-max_area.rio.to_raster(path_aim / 'AIM_max_land_area_km2.tif')  
+max_area.rio.to_raster(path_aim / 'AIM_max_land_area_km2.tif')
 
 # calculate maximum land area for MAgPIE based on available area file
 nc_file = rioxarray.open_rasterio(path_magpie / 'grid_cell_land_area.nc',
@@ -402,8 +402,8 @@ for model in models:
 
             gain_yr.rio.to_raster(path / ar_file_yr, driver='GTiff')
 
-    # calculate grid area based on arbitrarily chosen input file (not for IMAGE)
-    if model not in ['IMAGE', 'MAgPIE', 'AIM']:
+    # calculate grid area based on arbitrarily chosen input file
+    if model not in ['IMAGE', 'MAgPIE', 'AIM']:  # for these models use predefined file
         arbit_input = rioxarray.open_rasterio(
             path / f'{model}_Afforestation_SSP1-19_2050.tif', masked=True)
         bin_land = arbit_input.where(arbit_input.isnull(), 1)  # all=1 if not nodata

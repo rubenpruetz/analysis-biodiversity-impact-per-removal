@@ -190,12 +190,14 @@ for model in models:
         land_out = f'{model}_{cdr_option}_SSP2-26_2100_bin.tif'
 
         land_in = rioxarray.open_rasterio(path / land_in, masked=True)
-        bin_land = land_in.where(land_in.isnull(), 1)  # all=1 if not nodata
-        bin_land.rio.to_raster(path / 'bin_land.tif', driver='GTiff')
 
-        land_area_calculation(path, 'bin_land.tif', f'{model}_max_land_area_km2.tif')
+        # calculate grid area based on arbitrarily chosen input file
+        if model not in ['IMAGE', 'MAgPIE', 'AIM']:  # for these models use predefined file
+            bin_land = land_in.where(land_in.isnull(), 1)  # all=1 if not nodata
+            bin_land.rio.to_raster(path / 'bin_land.tif', driver='GTiff')
+            land_area_calculation(path, 'bin_land.tif', f'{model}_max_land_area_km2.tif')
+
         land_max = rioxarray.open_rasterio(path / f'{model}_max_land_area_km2.tif', masked=True)
-
         land_allo_share = land_in / land_max  # estimate cell shares allocated
         land_allo_share.rio.to_raster(path / land_temp , driver='GTiff')
         binary_converter(land_temp, path, 0.1, land_out)  # adjust threshold if needed
