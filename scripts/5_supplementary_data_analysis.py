@@ -10,9 +10,11 @@ plt.rcParams.update({'figure.dpi': 600})
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 
-path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
+path_gcam = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/gcam_maps')
+path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
 path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
+path_magpie = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/magpie_maps')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 
@@ -250,6 +252,186 @@ plt.subplots_adjust(wspace=0.4)
 sns.despine()
 plt.show()
 
+# %% plot supplementary figure on land per CDR option, scenario and model
+model_fam = ['AIM', 'GCAM', 'GLOBIOM', 'IMAGE', 'MAgPIE']
+cdr_options = ['Afforestation', 'BECCS']
+
+area_dfs = []
+
+for model in model_fam:
+    if model == 'AIM':
+        path = path_aim
+    elif model == 'GCAM':
+        path = path_gcam
+    elif model == 'GLOBIOM':
+        path = path_globiom
+    elif model == 'IMAGE':
+        path = path_image
+    elif model == 'MAgPIE':
+        path = path_magpie
+
+    for cdr_option in cdr_options:
+        for scenario in scenarios:
+            for year in years:
+                try:
+                    file = f'{model}_{cdr_option}_{scenario}_{year}.tif'
+                    land = rioxarray.open_rasterio(path / file, masked=True)
+                    land = pos_val_summer(land, squeeze=True)
+                    land = land / 1000000  # km2 to Mkm2
+
+                    area_dfs.append({'Model': model, 'Cdr_option': cdr_option,
+                        'Scenario': scenario, 'Year': year, 'Land': land})
+
+                except Exception as e:
+                    print(f'Failed to process {file}: {e}')
+
+area_df = pd.DataFrame(area_dfs)
+area_df['Year'] = area_df['Year'].astype(int)
+area_df['SSP'] = area_df['Scenario'].str.split('-').str[0]
+area_df['RCP'] = area_df['Scenario'].str.split('-').str[1]
+
+ar_land = area_df.query('Cdr_option == "Afforestation"').reset_index(drop=True)
+beccs_land = area_df.query('Cdr_option == "BECCS"').reset_index(drop=True)
+
+
+rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
+           '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
+all_rcps = sorted(ar_land['RCP'].unique())
+
+# plot removal via forestation
+fig, axes = plt.subplots(5, 3, figsize=(8, 9), sharex=True, sharey=True)
+sns.lineplot(data=ar_land.query('Model == "AIM" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[0, 0])
+sns.lineplot(data=ar_land.query('Model == "GCAM" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[1, 0])
+sns.lineplot(data=ar_land.query('Model == "GLOBIOM" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[2, 0])
+sns.lineplot(data=ar_land.query('Model == "IMAGE" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[3, 0])
+sns.lineplot(data=ar_land.query('Model == "MAgPIE" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[4, 0])
+
+sns.lineplot(data=ar_land.query('Model == "AIM" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=True, ax=axes[0, 1])
+sns.lineplot(data=ar_land.query('Model == "GCAM" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal,legend=False, ax=axes[1, 1])
+sns.lineplot(data=ar_land.query('Model == "GLOBIOM" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[2, 1])
+sns.lineplot(data=ar_land.query('Model == "IMAGE" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[3, 1])
+sns.lineplot(data=ar_land.query('Model == "MAgPIE" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[4, 1])
+
+sns.lineplot(data=ar_land.query('Model == "AIM" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[0, 2])
+sns.lineplot(data=ar_land.query('Model == "GCAM" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[1, 2])
+sns.lineplot(data=ar_land.query('Model == "GLOBIOM" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[2, 2])
+sns.lineplot(data=ar_land.query('Model == "IMAGE" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[3, 2])
+sns.lineplot(data=ar_land.query('Model == "MAgPIE" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[4, 2])
+
+for ax in axes.flat:
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_xlim(2010, 2100)
+    ax.set_xticks([2010, 2055, 2100])
+    ax.tick_params(axis='x', labelsize=11)
+    ax.tick_params(axis='y', labelsize=11)
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
+
+axes[0, 0].set_ylabel('AIM', fontsize=11)
+axes[1, 0].set_ylabel('GCAM', fontsize=11)
+axes[2, 0].set_ylabel('GLOBIOM', fontsize=11)
+axes[3, 0].set_ylabel('IMAGE', fontsize=11)
+axes[4, 0].set_ylabel('MAgPIE', fontsize=11)
+
+axes[0, 0].set_title('SSP1')
+axes[0, 1].set_title('SSP2')
+axes[0, 2].set_title('SSP3')
+
+handles, labels = axes[0, 1].get_legend_handles_labels()
+rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
+new_labels = [rename_dict.get(label, label) for label in labels]
+axes[0, 1].legend(handles, new_labels, bbox_to_anchor=(-01.3, 1.55), ncols=3,
+                  loc='upper left', columnspacing=1, handletextpad=0.4)
+
+fig.supylabel(f'Land area for forestation [Mkm$^2$]', x=0.03, va='center', ha='center')
+
+plt.subplots_adjust(hspace=0.1)
+plt.subplots_adjust(wspace=0.3)
+sns.despine()
+plt.show()
+
+# plot removal via BECCS
+fig, axes = plt.subplots(5, 3, figsize=(8, 9), sharex=True, sharey=True)
+sns.lineplot(data=beccs_land.query('Model == "AIM" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[0, 0])
+sns.lineplot(data=beccs_land.query('Model == "GCAM" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[1, 0])
+sns.lineplot(data=beccs_land.query('Model == "GLOBIOM" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[2, 0])
+sns.lineplot(data=beccs_land.query('Model == "IMAGE" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[3, 0])
+sns.lineplot(data=beccs_land.query('Model == "MAgPIE" & SSP == "SSP1"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[4, 0])
+
+sns.lineplot(data=beccs_land.query('Model == "AIM" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=True, ax=axes[0, 1])
+sns.lineplot(data=beccs_land.query('Model == "GCAM" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[1, 1])
+sns.lineplot(data=beccs_land.query('Model == "GLOBIOM" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[2, 1])
+sns.lineplot(data=beccs_land.query('Model == "IMAGE" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[3, 1])
+sns.lineplot(data=beccs_land.query('Model == "MAgPIE" & SSP == "SSP2"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[4, 1])
+
+sns.lineplot(data=beccs_land.query('Model == "AIM" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[0, 2])
+sns.lineplot(data=beccs_land.query('Model == "GCAM" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[1, 2])
+sns.lineplot(data=beccs_land.query('Model == "GLOBIOM" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[2, 2])
+sns.lineplot(data=beccs_land.query('Model == "IMAGE" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[3, 2])
+sns.lineplot(data=beccs_land.query('Model == "MAgPIE" & SSP == "SSP3"'),
+             x='Year', y='Land', hue='RCP', palette=rcp_pal, legend=False, ax=axes[4, 2])
+
+for ax in axes.flat:
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_xlim(2010, 2100)
+    ax.set_xticks([2010, 2055, 2100])
+    ax.tick_params(axis='x', labelsize=11)
+    ax.tick_params(axis='y', labelsize=11)
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
+
+axes[0, 0].set_ylabel('AIM', fontsize=11)
+axes[1, 0].set_ylabel('GCAM', fontsize=11)
+axes[2, 0].set_ylabel('GLOBIOM', fontsize=11)
+axes[3, 0].set_ylabel('IMAGE', fontsize=11)
+axes[4, 0].set_ylabel('MAgPIE', fontsize=11)
+
+axes[0, 0].set_title('SSP1')
+axes[0, 1].set_title('SSP2')
+axes[0, 2].set_title('SSP3')
+
+handles, labels = axes[0, 1].get_legend_handles_labels()
+rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
+new_labels = [rename_dict.get(label, label) for label in labels]
+axes[0, 1].legend(handles, new_labels, bbox_to_anchor=(-01.3, 1.55), ncols=3,
+                  loc='upper left', columnspacing=1, handletextpad=0.4)
+
+fig.supylabel(f'Land area for BECCS [Mkm$^2$]', x=0.03, va='center', ha='center')
+
+plt.subplots_adjust(hspace=0.1)
+plt.subplots_adjust(wspace=0.3)
+sns.despine()
+plt.show()
+
 # %% get AR6 land cover data for SSP-RCP combinations
 ar6_db = ar6_db.loc[ar6_db['Model'].isin(models)]
 ar6_db = ar6_db.loc[ar6_db['Scenario'].isin(scenarios)]
@@ -305,7 +487,7 @@ lc_data = pd.merge(lc_data, lc_2010, on=['Model', 'Scenario', 'Variable'],
                    suffixes=['', '_2010'])
 
 lc_data['Change'] = lc_data['Value'] - lc_data['Value_2010']
-lc_data['Change'] = lc_data['Change'] / 100  # from ha to km2
+lc_data['Change'] = lc_data['Change'] / 100  # from Mha to Mkm2
 
 # plot supplementary figure on land use changes based on AR6 Scenarios Database
 lc_data['SSP'] = lc_data['Scenario'].str.split('-').str[0]
