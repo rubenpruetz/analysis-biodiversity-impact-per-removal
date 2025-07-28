@@ -347,7 +347,7 @@ plt.subplots_adjust(wspace=0.5)
 sns.despine()
 plt.show()
 
-# %% plot avoided warming-related refugia loss due CDR
+# %% plot avoided warming-related refugia loss due to CDR
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
 ar_removal = load_and_concat('ar_removal', paths)
 beccs_removal = load_and_concat('beccs_removal', paths)
