@@ -289,7 +289,7 @@ norm_g1 = BoundaryNorm([0, 1], color_g1.N)
 color_g2 = ListedColormap([(0, 0, 0, 0), 'grey'])
 norm_g2 = BoundaryNorm([0, 1], color_g2.N)
 
-PotBen = ListedColormap([(0, 0, 0, 0), 'gold'])
+PotBen = ListedColormap([(0, 0, 0, 0), 'orange'])
 norm_PotBen = BoundaryNorm([0, 1], PotBen.N)
 
 LikHarm = ListedColormap([(0, 0, 0, 0), 'crimson'])
@@ -315,7 +315,7 @@ ax.coastlines(linewidth=0.2)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
 legend_patches = [
-    mpatches.Patch(color='gold', label='Potentially beneficial'),
+    mpatches.Patch(color='orange', label='Potentially beneficial'),
     mpatches.Patch(color='crimson', label='Likely harmful'),
     mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
@@ -352,7 +352,7 @@ ax.coastlines(linewidth=0.2)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
 legend_patches = [
-    mpatches.Patch(color='gold', label='Potentially beneficial'),
+    mpatches.Patch(color='orange', label='Potentially beneficial'),
     mpatches.Patch(color='crimson', label='Likely harmful'),
     mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
