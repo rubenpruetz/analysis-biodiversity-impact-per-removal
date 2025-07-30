@@ -26,7 +26,7 @@ path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodivers
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
 
 # %% estimate land CDR conflict with SDG 15.5 based on different criteria
-hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif', 
+hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif',
                                    masked=True)
 res_bio = rioxarray.open_rasterio(path_uea / 'bio1.8_bin.tif', masked=True)  # change file if required
 
@@ -172,7 +172,7 @@ sns.despine()
 plt.show()
 
 # %% plot hotspot areas of concern in terms of model agreement
-# make files from different models binary (cell threshold >= 5% of max area)
+# make files from different models binary (cell share >= x% of max area)
 for model in models:
     for cdr_option in cdr_options:
         if model == 'AIM':
@@ -201,7 +201,7 @@ for model in models:
         land_max = rioxarray.open_rasterio(path / f'{model}_max_land_area_km2.tif', masked=True)
         land_allo_share = land_in / land_max  # estimate cell shares allocated
         land_allo_share.rio.to_raster(path / land_temp , driver='GTiff')
-        binary_converter(land_temp, path, 0.1, land_out)  # adjust threshold if needed
+        binary_converter(land_temp, path, 0.1, land_out)  # adjust cell threshold if needed
 
 # load area-based criteria for beneficia/harmful effects on biodiversity
 ref_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_suit.tif', masked=True)
@@ -235,12 +235,12 @@ for cdr_option in cdr_options:
     agree_in_bio_pos = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * suit
     agree_in_bio_neg = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * not_suit
 
-    # at least three-of-five models need to agree
+    # at least x-of-five models need to agree
     agree_in_bio_pos.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_suit.tif', driver='GTiff')
-    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_suit.tif', path_all, 2,
+    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_suit.tif', path_all, 2,  # adjust model threshold if needed
                      f'mi_{cdr_option}_SSP2-26_2100_suit.tif')
     agree_in_bio_neg.rio.to_raster(path_all / f'mi_{cdr_option}_SSP2-26_2100_not_suit.tif', driver='GTiff')
-    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_not_suit.tif', path_all, 2,
+    binary_converter(f'mi_{cdr_option}_SSP2-26_2100_not_suit.tif', path_all, 2,   # adjust model threshold if needed
                      f'mi_{cdr_option}_SSP2-26_2100_not_suit.tif')
 
 # %%

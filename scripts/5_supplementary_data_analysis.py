@@ -4,7 +4,13 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.patches as mpatches
 import itertools
+import rioxarray
+import rasterio as rs
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from pathlib import Path
 from required_functions import *
 plt.rcParams.update({'figure.dpi': 600})
@@ -598,12 +604,12 @@ plt.subplots_adjust(wspace=0.3)
 sns.despine()
 plt.show()
 
-# %% explore reduction in CDR land for SSP1-26 instead of SSP2-26
+# %% explore reduction in CDR land for various sensitivities
 # load area-based criteria for beneficia/harmful effects on biodiversity
 ref_not_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_not_suit.tif', masked=True)
 beccs_not_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_not_suit.tif', masked=True)
 
-warmings = [1.5, 1.8, 2.0]
+warmings = [1.8]  # adjust warming level if needed
 scenarios = ['SSP1-26', 'SSP2-26']
 exclusions = ['all_bio_areas', 'unsuit_bio_areas']
 
@@ -623,7 +629,7 @@ for scenario in scenarios:
 
             exclu_df = pd.DataFrame(columns=['Model', 'CDR_option', 'Year', 'CDR_land',
                                              'CDR_in_hs', 'CDR_in_hs_res', 'CDR_in_bio'])
-            for model in models:
+            for model in model_fam:
                 for cdr_option in cdr_options:
                     for year in years:
 
@@ -789,3 +795,220 @@ for scenario in scenarios:
             plt.subplots_adjust(wspace=0.1)
             sns.despine()
             plt.show()
+
+# %%
+cell_thresholds = [0.1, 0.2]  # minimum thresholds for cell area shares
+model_agreement_thresholds = [2]   # minimum thresholds for model agreement
+
+for model in model_fam:
+    for scenario in scenarios:
+        for cdr_option in cdr_options:
+            for thres_c in cell_thresholds:
+                for thres_m in model_agreement_thresholds:
+                    for warm in warmings:
+
+                        if model == 'AIM':
+                            path = path_aim
+                        elif model == 'GCAM':
+                            path = path_gcam
+                        elif model == 'GLOBIOM':
+                            path = path_globiom
+                        elif model == 'IMAGE':
+                            path = path_image
+                        elif model == 'MAgPIE':
+                            path = path_magpie
+
+                        land_in = f'{model}_{cdr_option}_{scenario}_2100.tif'
+                        land_temp = f'{model}_{cdr_option}_{scenario}_2100_temp.tif'
+                        land_out = f'{model}_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif'
+
+                        land_in = rioxarray.open_rasterio(path / land_in, masked=True)
+
+                        # calculate grid area based on arbitrarily chosen input file
+                        if model not in ['IMAGE', 'MAgPIE', 'AIM']:  # for these models use predefined file
+                            bin_land = land_in.where(land_in.isnull(), 1)  # all=1 if not nodata
+                            bin_land.rio.to_raster(path / 'bin_land.tif', driver='GTiff')
+                            land_area_calculation(path, 'bin_land.tif', f'{model}_max_land_area_km2.tif')
+
+                        land_max = rioxarray.open_rasterio(path / f'{model}_max_land_area_km2.tif', masked=True)
+                        land_allo_share = land_in / land_max  # estimate cell shares allocated
+                        land_allo_share.rio.to_raster(path / land_temp , driver='GTiff')
+                        binary_converter(land_temp, path, thres_c, land_out)
+
+                        # load area-based criteria for beneficia/harmful effects on biodiversity
+                        ref_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_suit.tif', masked=True)
+                        ref_not_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_not_suit.tif', masked=True)
+                        beccs_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_suit.tif', masked=True)
+                        beccs_not_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_not_suit.tif', masked=True)
+
+                        # calculate model agreement in refugia and check if likely positive or negative
+                        aim_lc = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                        gcam_lc = rioxarray.open_rasterio(path_gcam / f'GCAM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                        globiom_lc = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                        image_lc = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                        magpie_lc = rioxarray.open_rasterio(path_magpie / f'MAgPIE_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+
+                        if cdr_option == 'Afforestation':
+                            suit = ref_suit
+                            not_suit = ref_not_suit
+                        elif cdr_option == 'BECCS':
+                            suit = beccs_suit
+                            not_suit = beccs_not_suit
+
+                        res_bio = rioxarray.open_rasterio(path_uea / f'bio{warm}_bin.tif')
+                        aim_lc = aim_lc.rio.reproject_match(res_bio)
+                        gcam_lc = gcam_lc.rio.reproject_match(res_bio)
+                        globiom_lc = globiom_lc.rio.reproject_match(res_bio)
+                        image_lc = image_lc.rio.reproject_match(res_bio)
+                        magpie_lc = magpie_lc.rio.reproject_match(res_bio)
+                        suit = suit.rio.reproject_match(res_bio)
+                        not_suit = not_suit.rio.reproject_match(res_bio)
+
+                        agree_in_bio_pos = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * suit
+                        agree_in_bio_neg = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * not_suit
+
+                        # at least x-of-five models need to agree
+                        agree_in_bio_pos.rio.to_raster(path_all / f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif', driver='GTiff')
+                        binary_converter(f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif', path_all, thres_m,
+                                         f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+                        agree_in_bio_neg.rio.to_raster(path_all / f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif', driver='GTiff')
+                        binary_converter(f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif', path_all, thres_m,
+                                         f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+
+for scenario in scenarios:
+    for thres_c in cell_thresholds:
+        for thres_m in model_agreement_thresholds:
+            for warm in warmings:
+
+                ar_suit = rs.open(path_all / f'mi_Afforestation_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+                be_suit = rs.open(path_all / f'mi_BECCS_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+                ar_nsuit = rs.open(path_all / f'mi_Afforestation_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+                be_nsuit = rs.open(path_all / f'mi_BECCS_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+
+                thres_cp = round(thres_c * 100)  # from 0-1 to 0-100
+                refug = rs.open(path_uea / f'bio{warm}_bin.tif')
+                hs_resil = rs.open(path_hotspots / 'hs_resilient.tif')
+
+                data_ar = ar_suit.read(1)
+                data_be = be_suit.read(1)
+                data_ar_n = ar_nsuit.read(1)
+                data_be_n = be_nsuit.read(1)
+                data_refug = refug.read(1)
+                data_hs_resil = hs_resil.read(1)
+
+                # get the metadata
+                transform = ar_suit.transform
+                extent_ar = [transform[2], transform[2] + transform[0] * ar_suit.width,
+                             transform[5] + transform[4] * ar_suit.height, transform[5]]
+
+                transform = be_suit.transform
+                extent_be = [transform[2], transform[2] + transform[0] * be_suit.width,
+                             transform[5] + transform[4] * be_suit.height, transform[5]]
+
+                transform = ar_nsuit.transform
+                extent_ar_n = [transform[2], transform[2] + transform[0] * ar_nsuit.width,
+                               transform[5] + transform[4] * ar_nsuit.height, transform[5]]
+
+                transform = be_nsuit.transform
+                extent_be_n = [transform[2], transform[2] + transform[0] * be_nsuit.width,
+                               transform[5] + transform[4] * be_nsuit.height, transform[5]]
+
+                transform = refug.transform
+                extent_refug = [transform[2], transform[2] + transform[0] * refug.width,
+                                transform[5] + transform[4] * refug.height, transform[5]]
+
+                transform = hs_resil.transform
+                extent_hs = [transform[2], transform[2] + transform[0] * hs_resil.width,
+                             transform[5] + transform[4] * hs_resil.height, transform[5]]
+
+                color_g1 = ListedColormap([(0, 0, 0, 0), 'gainsboro'])
+                norm_g1 = BoundaryNorm([0, 1], color_g1.N)
+
+                color_g2 = ListedColormap([(0, 0, 0, 0), 'grey'])
+                norm_g2 = BoundaryNorm([0, 1], color_g2.N)
+
+                PotBen = ListedColormap([(0, 0, 0, 0), 'orange'])
+                norm_PotBen = BoundaryNorm([0, 1], PotBen.N)
+
+                LikHarm = ListedColormap([(0, 0, 0, 0), 'crimson'])
+                norm_LikHarm = BoundaryNorm([0, 1], LikHarm.N)
+
+                # plot agreement for forestation
+                fig = plt.figure(figsize=(10, 6))
+                ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
+
+                img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
+                                   origin='upper', cmap=color_g1, norm=norm_g1)
+
+                img_hs = ax.imshow(data_hs_resil, extent=extent_hs, transform=ccrs.PlateCarree(),
+                                   origin='upper', cmap=color_g2, norm=norm_g2)
+
+                img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
+                                   origin='upper', cmap=PotBen, norm=norm_PotBen)
+
+                img_ar_n = ax.imshow(data_ar_n, extent=extent_ar_n, transform=ccrs.PlateCarree(),
+                                     origin='upper', cmap=LikHarm, norm=norm_LikHarm)
+
+                ax.coastlines(linewidth=0.2)
+                ax.add_feature(cfeature.BORDERS, linewidth=0.2)
+
+                legend_patches = [
+                    mpatches.Patch(color='orange', label='Potentially beneficial'),
+                    mpatches.Patch(color='crimson', label='Likely harmful'),
+                    mpatches.Patch(color='gainsboro', label=f'Refugia at {warm} °C'),
+                    mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
+
+                legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
+                                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+
+                legend.get_frame().set_alpha(1)
+                legend.get_frame().set_edgecolor('none')
+
+                ax.text(-177, -25, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
+                        fontweight='bold', zorder=10)
+
+                ax.text(-30, -57, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
+                        transform=ccrs.PlateCarree(), fontsize=9.5, zorder=10)
+
+                plt.show()
+
+                # plot agreement for BECCS
+                fig = plt.figure(figsize=(10, 6))
+                ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
+
+                img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
+                                   origin='upper', cmap=color_g1, norm=norm_g1)
+
+                img_hs = ax.imshow(data_hs_resil, extent=extent_hs, transform=ccrs.PlateCarree(),
+                                   origin='upper', cmap=color_g2, norm=norm_g2)
+
+                img_be = ax.imshow(data_be, extent=extent_be, transform=ccrs.PlateCarree(),
+                                   origin='upper', cmap=PotBen, norm=norm_PotBen)
+
+                img_be_n = ax.imshow(data_be_n, extent=extent_be_n, transform=ccrs.PlateCarree(),
+                                     origin='upper', cmap=LikHarm, norm=norm_LikHarm)
+
+                ax.coastlines(linewidth=0.2)
+                ax.add_feature(cfeature.BORDERS, linewidth=0.2)
+
+                legend_patches = [
+                    mpatches.Patch(color='orange', label='Potentially beneficial'),
+                    mpatches.Patch(color='crimson', label='Likely harmful'),
+                    mpatches.Patch(color='gainsboro', label=f'Refugia at {warm} °C'),
+                    mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
+
+                legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
+                                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+
+                legend.get_frame().set_alpha(1)
+                legend.get_frame().set_edgecolor('none')
+
+                ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
+                        fontweight='bold', zorder=10)
+
+                ax.text(-30, -57, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
+                        transform=ccrs.PlateCarree(), fontsize=9.5, zorder=10)
+
+                plt.show()
