@@ -26,7 +26,8 @@ path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodivers
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
 
 # %% estimate land CDR conflict with SDG 15.5 based on different criteria
-hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif')
+hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif', 
+                                   masked=True)
 res_bio = rioxarray.open_rasterio(path_uea / 'bio1.8_bin.tif', masked=True)  # change file if required
 
 # estimate hotspot areas that a resilient to selected warming
