@@ -798,7 +798,7 @@ for scenario in scenarios:
 
 # %%
 cell_thresholds = [0.1, 0.2]  # minimum thresholds for cell area shares
-model_agreement_thresholds = [2]   # minimum thresholds for model agreement
+model_agreement_thresholds = [2, 3]   # minimum thresholds for model agreement
 
 for model in model_fam:
     for scenario in scenarios:
@@ -968,8 +968,8 @@ for scenario in scenarios:
                 ax.text(-177, -25, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
                         fontweight='bold', zorder=10)
 
-                ax.text(-30, -57, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
-                        transform=ccrs.PlateCarree(), fontsize=9.5, zorder=10)
+                ax.text(-30, -58, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
+                        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
 
                 plt.show()
 
@@ -1008,7 +1008,7 @@ for scenario in scenarios:
                 ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
                         fontweight='bold', zorder=10)
 
-                ax.text(-30, -57, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
-                        transform=ccrs.PlateCarree(), fontsize=9.5, zorder=10)
+                ax.text(-30, -58, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
+                        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
 
                 plt.show()
