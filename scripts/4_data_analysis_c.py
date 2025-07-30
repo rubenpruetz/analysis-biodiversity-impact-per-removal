@@ -331,6 +331,9 @@ legend.get_frame().set_edgecolor('none')
 ax.text(-177, -25, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
         fontweight='bold', zorder=10)
 
+ax.text(-30, -57, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
+        transform=ccrs.PlateCarree(), fontsize=9.5, zorder=10)
+
 plt.show()
 
 # plot agreement for BECCS
@@ -367,5 +370,9 @@ legend.get_frame().set_edgecolor('none')
 
 ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
         fontweight='bold', zorder=10)
+
+ax.text(-30, -57, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
+        transform=ccrs.PlateCarree(), fontsize=9.5, zorder=10)
+
 
 plt.show()
