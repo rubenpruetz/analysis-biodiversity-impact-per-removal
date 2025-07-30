@@ -160,7 +160,7 @@ axes[0].add_artist(legend1)
 axes[0].set_xlabel('No CDR within 1.8 °C resilient \nbiodiversity hotspots', fontsize=11)
 axes[1].set_xlabel('No CDR within current \nbiodiversity hotspots', fontsize=11)
 axes[2].set_xlabel('No CDR within 1.8 °C resilient \nclimate refugia', fontsize=11)
-axes[0].set_ylabel(f'Reduction in land allocated for CDR in SSP2-26 [%] \n(median and individual model estimate)',
+axes[0].set_ylabel('Reduction in land allocated for CDR in SSP2-26 [%] \n(median and individual model estimate)',
                    fontsize=12)
 
 for ax in axes.flat:
