@@ -798,7 +798,7 @@ for scenario in scenarios:
 
 # %%
 cell_thresholds = [0.1, 0.2]  # minimum thresholds for cell area shares
-model_agreement_thresholds = [2, 3]   # minimum thresholds for model agreement
+model_agreement_thresholds = [2, 3]  # minimum thresholds for model agreement
 
 for model in model_fam:
     for scenario in scenarios:
@@ -835,45 +835,50 @@ for model in model_fam:
                         land_allo_share.rio.to_raster(path / land_temp , driver='GTiff')
                         binary_converter(land_temp, path, thres_c, land_out)
 
-                        # load area-based criteria for beneficia/harmful effects on biodiversity
-                        ref_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_suit.tif', masked=True)
-                        ref_not_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_not_suit.tif', masked=True)
-                        beccs_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_suit.tif', masked=True)
-                        beccs_not_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_not_suit.tif', masked=True)
+for scenario in scenarios:
+    for cdr_option in cdr_options:
+        for thres_c in cell_thresholds:
+            for thres_m in model_agreement_thresholds:
+                for warm in warmings:
+                    # load area-based criteria for beneficia/harmful effects on biodiversity
+                    ref_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_suit.tif', masked=True)
+                    ref_not_suit = rioxarray.open_rasterio(path_ref_pot / 'ref_not_suit.tif', masked=True)
+                    beccs_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_suit.tif', masked=True)
+                    beccs_not_suit = rioxarray.open_rasterio(path_beccs_pot / 'beccs_not_suit.tif', masked=True)
 
-                        # calculate model agreement in refugia and check if likely positive or negative
-                        aim_lc = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
-                        gcam_lc = rioxarray.open_rasterio(path_gcam / f'GCAM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
-                        globiom_lc = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
-                        image_lc = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
-                        magpie_lc = rioxarray.open_rasterio(path_magpie / f'MAgPIE_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                    # calculate model agreement in refugia and check if likely positive or negative
+                    aim_lc = rioxarray.open_rasterio(path_aim / f'AIM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                    gcam_lc = rioxarray.open_rasterio(path_gcam / f'GCAM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                    globiom_lc = rioxarray.open_rasterio(path_globiom / f'GLOBIOM_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                    image_lc = rioxarray.open_rasterio(path_image / f'IMAGE_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
+                    magpie_lc = rioxarray.open_rasterio(path_magpie / f'MAgPIE_{cdr_option}_{scenario}_2100_bin_c{thres_c}_m{thres_m}_w{warm}.tif', masked=True)
 
-                        if cdr_option == 'Afforestation':
-                            suit = ref_suit
-                            not_suit = ref_not_suit
-                        elif cdr_option == 'BECCS':
-                            suit = beccs_suit
-                            not_suit = beccs_not_suit
+                    if cdr_option == 'Afforestation':
+                        suit = ref_suit
+                        not_suit = ref_not_suit
+                    elif cdr_option == 'BECCS':
+                        suit = beccs_suit
+                        not_suit = beccs_not_suit
 
-                        res_bio = rioxarray.open_rasterio(path_uea / f'bio{warm}_bin.tif')
-                        aim_lc = aim_lc.rio.reproject_match(res_bio)
-                        gcam_lc = gcam_lc.rio.reproject_match(res_bio)
-                        globiom_lc = globiom_lc.rio.reproject_match(res_bio)
-                        image_lc = image_lc.rio.reproject_match(res_bio)
-                        magpie_lc = magpie_lc.rio.reproject_match(res_bio)
-                        suit = suit.rio.reproject_match(res_bio)
-                        not_suit = not_suit.rio.reproject_match(res_bio)
+                    res_bio = rioxarray.open_rasterio(path_uea / f'bio{warm}_bin.tif')
+                    aim_lc = aim_lc.rio.reproject_match(res_bio)
+                    gcam_lc = gcam_lc.rio.reproject_match(res_bio)
+                    globiom_lc = globiom_lc.rio.reproject_match(res_bio)
+                    image_lc = image_lc.rio.reproject_match(res_bio)
+                    magpie_lc = magpie_lc.rio.reproject_match(res_bio)
+                    suit = suit.rio.reproject_match(res_bio)
+                    not_suit = not_suit.rio.reproject_match(res_bio)
 
-                        agree_in_bio_pos = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * suit
-                        agree_in_bio_neg = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * not_suit
+                    agree_in_bio_pos = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * suit
+                    agree_in_bio_neg = (aim_lc + gcam_lc + globiom_lc + image_lc + magpie_lc) * res_bio * not_suit
 
-                        # at least x-of-five models need to agree
-                        agree_in_bio_pos.rio.to_raster(path_all / f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif', driver='GTiff')
-                        binary_converter(f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif', path_all, thres_m,
-                                         f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
-                        agree_in_bio_neg.rio.to_raster(path_all / f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif', driver='GTiff')
-                        binary_converter(f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif', path_all, thres_m,
-                                         f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+                    # at least x-of-five models need to agree
+                    agree_in_bio_pos.rio.to_raster(path_all / f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif', driver='GTiff')
+                    binary_converter(f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif', path_all, thres_m,
+                                     f'mi_{cdr_option}_{scenario}_2100_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
+                    agree_in_bio_neg.rio.to_raster(path_all / f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif', driver='GTiff')
+                    binary_converter(f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif', path_all, thres_m,
+                                     f'mi_{cdr_option}_{scenario}_2100_not_suit_c{thres_c}_m{thres_m}_w{warm}.tif')
 
 for scenario in scenarios:
     for thres_c in cell_thresholds:
