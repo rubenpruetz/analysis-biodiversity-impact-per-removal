@@ -964,8 +964,8 @@ for scenario in scenarios:
                     mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
 
                 legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
-                                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
-                                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                                   handletextpad=0.5, borderpad=1.5, frameon=True)
 
                 legend.get_frame().set_alpha(1)
                 legend.get_frame().set_edgecolor('none')
@@ -1004,8 +1004,8 @@ for scenario in scenarios:
                     mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
 
                 legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
-                                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
-                                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                                   handletextpad=0.5, borderpad=1.5, frameon=True)
 
                 legend.get_frame().set_alpha(1)
                 legend.get_frame().set_edgecolor('none')

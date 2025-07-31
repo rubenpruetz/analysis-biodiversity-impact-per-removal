@@ -121,7 +121,7 @@ def land_area_calculation(filepath, input_name, output_name=None):
     else:
         return areagrid
 
-# sum cells in array that are positive (squeeze removes non-required dims)
+# function to sum cells in array that are positive (squeeze removes non-required dims)
 def pos_val_summer(arr, squeeze=True):
     if squeeze:
         arr = np.squeeze(arr)
@@ -159,6 +159,33 @@ def cum_cdr_calc(cdr_df):
     cdr['Cum'] = cdr.groupby(['Model', 'Scenario', 'Variable'])['Removal'].cumsum()
 
     return cdr[['Model', 'Scenario', 'Variable', 'Year', 'Removal', 'Cum']].copy()
+
+# function to find the year of a given annual removal
+def yr_target_finder(df, cdr_target):
+    up = df[df['Removal'] >= cdr_target].groupby(['SSP', 'RCP']).first().reset_index()
+    up = up[['SSP', 'RCP', 'Year']].copy()
+    down = up.copy()
+    down['Year'] = down['Year'] - 10
+
+    down = pd.merge(down, df[['RCP', 'SSP', 'Year', 'Removal']],
+                    on=['SSP', 'RCP', 'Year'], how='inner')
+
+    up = pd.merge(up, df[['RCP', 'SSP', 'Year', 'Removal']],
+                  on=['SSP', 'RCP', 'Year'], how='inner')
+
+    cdr_range = pd.merge(down, up, on=['SSP', 'RCP'], suffixes=['_low', '_up'])
+
+    def helper_func(row):
+        yr_low = row['Year_low']
+        yr_up = row['Year_up']
+        down = row['Removal_low']
+        up = row['Removal_up']
+        # for each scenario, calc in which year x-amount of CDR is removed
+        yr_target = yr_low + ((yr_up - yr_low) / (up - down)) * (cdr_target - down)
+        return yr_target
+
+    cdr_range['yr_target'] = cdr_range.apply(helper_func, axis=1)
+    return cdr_range
 
 # function to overlay raster and admin boundary shapefile
 def admin_bound_calculator(key, admin_sf, intersect_src):

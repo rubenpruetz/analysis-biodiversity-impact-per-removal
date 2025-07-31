@@ -374,5 +374,4 @@ ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
 ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
         transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
 
-
 plt.show()
