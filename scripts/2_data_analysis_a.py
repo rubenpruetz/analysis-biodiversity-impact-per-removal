@@ -219,7 +219,7 @@ for model in models:
     lpr_sum['Removal'] = lpr_sum['Removal_ar'] + lpr_sum['Removal_beccs']
     lpr_sum = lpr_sum[['SSP', 'RCP', 'Year', 'Removal']].copy()
 
-    removal_steps = [6, 7, 8]
+    removal_steps = [6, 8, 10]
     for removal_step in removal_steps:
         cdr_sum_range = yr_target_finder(lpr_sum, removal_step)
 

@@ -27,6 +27,7 @@ path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversit
 path_ag = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/unfccc_annex')
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
+sf_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/wab')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_models.csv')
@@ -571,7 +572,6 @@ for model in models:
 
 # %% calculate country burden for refugia
 # read the administrative boundary shapefile data
-sf_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/wab')
 admin_sf = shapefile.Reader(sf_path / 'world-administrative-boundaries.shp')
 
 for model in models:

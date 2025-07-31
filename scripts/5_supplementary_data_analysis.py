@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.patches as mpatches
+import matplotlib as mpl
 import itertools
 import rioxarray
 import rasterio as rs
+import shapefile
 import cartopy.crs as ccrs
+from cartopy.io.shapereader import Reader
 import cartopy.feature as cfeature
 from pathlib import Path
 from required_functions import *
@@ -27,7 +30,7 @@ path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
 path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
-
+sf_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/wab')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 
@@ -120,6 +123,128 @@ plt.subplots_adjust(hspace=0.25)
 plt.subplots_adjust(wspace=0.2)
 sns.despine()
 plt.show()
+
+# %% plot supplementary figure on CDR in refugia for combined removal levels (AR+BECCS)
+admin_sf = shapefile.Reader(sf_path / 'world-administrative-boundaries.shp')
+
+rcp_lvl = '19'  # select RCP level (without dot)
+ssps = ['SSP1', 'SSP2', 'SSP3']
+models_3 = ['AIM', 'GLOBIOM', 'IMAGE']
+removal_lvls = [6, 10]
+
+for model in models_3:
+    if model == 'GLOBIOM':
+        path = path_globiom
+    elif model == 'AIM':
+        path = path_aim
+    elif model == 'IMAGE':
+        path = path_image
+
+    for removal_lvl in removal_lvls:
+        for ssp in ssps:
+
+            try:
+                ar = f'{model}_Afforestation_{ssp}-{rcp_lvl}_sum{removal_lvl}GtCO2.tif'
+                be = f'{model}_BECCS_{ssp}-{rcp_lvl}_sum{removal_lvl}GtCO2.tif'
+
+                ar = rioxarray.open_rasterio(path / ar, masked=True)
+                be = rioxarray.open_rasterio(path / be, masked=True)
+
+                refugia = rioxarray.open_rasterio(path_uea / 'bio1.8_bin.tif', masked=True)  # specify warming level
+                bin_land = refugia.where(refugia.isnull(), 1)  # all=1 if not nodata
+                bin_land.rio.to_raster(path_uea / 'bin_land.tif', driver='GTiff')
+                land_area_calculation(path_uea, 'bin_land.tif', 'bin_land_km2.tif')
+                max_land_area = rioxarray.open_rasterio(path_uea / 'bin_land_km2.tif',
+                                                        masked=True)
+
+                ar = ar.rio.reproject_match(refugia)  # match
+                ar_in_bio = ar * refugia * 1000000  # calc overlay (Mkm2 to km2)
+
+                be = be.rio.reproject_match(refugia)  # match
+                be_in_bio = be * refugia * 1000000  # calc overlay (Mkm2 to km2)
+
+                max_land_area = max_land_area.rio.reproject_match(ar_in_bio)  # match
+                ar_in_bio_rel = ar_in_bio / max_land_area * 100  # calc overlay share per cell
+
+                max_land_area = max_land_area.rio.reproject_match(be_in_bio)  # match
+                be_in_bio_rel = be_in_bio / max_land_area * 100  # calc overlay share per cell
+
+                # save overlays for later
+                ar_in_bio.rio.to_raster(path / f'{ssp}_ar_sum{removal_lvl}_bio_absolute.tif', driver='GTiff')
+                be_in_bio.rio.to_raster(path / f'{ssp}_be_sum{removal_lvl}_bio_absolute.tif', driver='GTiff')
+
+            except Exception as e:
+                print(f'Error processing {ssp}: {e}')
+                continue
+
+            # calculate country burden for refugia
+            dfs = []
+
+            try:
+                intersect_src = rs.open(path / f'{ssp}_ar_sum{removal_lvl}_bio_absolute.tif')
+                df_ar = admin_bound_calculator(ssp, admin_sf, intersect_src)
+                df_ar['option'] = 'AR'
+                dfs.append(df_ar)
+            except Exception as e:
+                print(f'Error processing AR {ssp}: {e}')
+                continue
+
+            try:
+                intersect_src = rs.open(path / f'{ssp}_be_sum{removal_lvl}_bio_absolute.tif')
+                df_be = admin_bound_calculator(ssp, admin_sf, intersect_src)
+                df_be['option'] = 'BECCS'
+                dfs.append(df_be)
+            except Exception as e:
+                print(f'Error processing BECCS {ssp}: {e}')
+                continue
+
+            df_options = pd.concat(dfs, axis=0)
+
+            land_area_calculation(path_uea, 'bio1.8_bin.tif', 'bio1.8_bin_km2.tif')
+            intersect_src = rs.open(path_uea / 'bio1.8_bin_km2.tif')
+            df_bio15 = admin_bound_calculator('all_ssps', admin_sf, intersect_src)
+            df_bio15 = df_bio15.rename(columns={'km2': 'bio_km2'})
+
+            wab_out = pd.merge(df_options, df_bio15[['iso3', 'bio_km2']], on='iso3', how='inner')
+            wab_out['affected_bio_share'] = wab_out['km2'] / wab_out['bio_km2'] * 100
+
+            wab_cum = wab_out.groupby(['iso3', 'bio_km2'], as_index=False)['km2'].sum()
+            wab_cum['cum_affected_bio_share'] = wab_cum['km2'] / wab_cum['bio_km2'] * 100
+            wab_cum['cum_affected_bio_share'] = wab_cum['cum_affected_bio_share'].round(1)
+            wab_cum.dropna(inplace=True)
+
+            # plot national allocation levels in resilient refugia
+            bounds = [0, 1, 5, 10, 15, 20, 25]
+            norm = mpl.colors.BoundaryNorm(bounds, mpl.cm.PuRd.N, extend='max')
+            cmap = mpl.cm.PuRd
+
+            fig, ax = plt.subplots(1, 1, figsize=(10, 6), subplot_kw={'projection': ccrs.Robinson()})
+            shape_records = list(Reader(sf_path / 'world-administrative-boundaries.shp').records())
+
+            for record in shape_records:
+                iso = record.attributes['iso3']
+                if iso in wab_cum['iso3'].values:
+                    val = wab_cum.loc[wab_cum['iso3'] == iso, 'cum_affected_bio_share'].values[0]
+                    color = cmap(norm(val))
+                    ax.add_geometries([record.geometry], ccrs.PlateCarree(), facecolor=color,
+                                      edgecolor='black', linewidth=0.2)
+
+            ax.coastlines(linewidth=0.2)
+            ax.set_extent([-167, 167, -58, 90])
+
+            cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
+                                ax=ax, orientation='horizontal',
+                                boundaries=bounds, ticks=bounds,
+                                spacing='proportional', extend='max')
+            cbar.ax.set_position([0.346, -0.175, 0.334, 0.5])
+            cbar.ax.tick_params(labelsize=14)
+
+            cdr_sum = int(removal_lvl)
+            cbar.set_label(
+                f'Share of national refugia covered by Forestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
+                fontsize=15)
+            plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.04, y=0.2, ha='left')
+            plt.show()
 
 # %% plot supplementary figure on removal per CDR option, scenario and model
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
