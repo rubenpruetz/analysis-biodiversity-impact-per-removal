@@ -212,3 +212,74 @@ for model in models:
 
                 with rs.open(path / output_name, "w", **profile_updated) as dst:
                     dst.write(tiff_target.astype(rs.float32), 1)
+
+    # do sensitivities for a certain removal, irrespective of CDR option split
+    lpr_sum = pd.merge(lpr_ar, lpr_beccs, on=['SSP', 'RCP', 'Year'],
+                       suffixes=['_ar', '_beccs'])
+    lpr_sum['Removal'] = lpr_sum['Removal_ar'] + lpr_sum['Removal_beccs']
+    lpr_sum = lpr_sum[['SSP', 'RCP', 'Year', 'Removal']].copy()
+
+    removal_steps = [6, 7, 8]
+    for removal_step in removal_steps:
+        cdr_sum_range = yr_target_finder(lpr_sum, removal_step)
+
+        # interpolate land use layers to yr_target
+
+        for index, row in cdr_sum_range.iterrows():
+            ssp = row['SSP']
+            rcp = row['RCP']
+            yr_low = row['Year_low']
+            yr_up = row['Year_up']
+            yr_target = row['yr_target']
+
+            lower_ar = f'{model}_Afforestation_{ssp}-{rcp}_{yr_low}.tif'
+            upper_ar = f'{model}_Afforestation_{ssp}-{rcp}_{yr_up}.tif'
+            output_ar = f'{model}_Afforestation_{ssp}-{rcp}_sum{removal_step}GtCO2.tif'
+
+            with rs.open(path / lower_ar) as src_low:
+                with rs.open(path / upper_ar) as src_up:
+                    # read raster data and geospatial information
+                    lower_ar = src_low.read(1)
+                    upper_ar = src_up.read(1)
+                    profile_lower = src_low.profile
+
+                    lower_ar = lower_ar * 0.000001  # km2 to Mkm2
+                    upper_ar = upper_ar * 0.000001  # km2 to Mkm2
+
+                    yr_diff = yr_up - yr_low  # diff of known years
+                    tiff_diff = upper_ar - lower_ar  # diff of known tiffs
+
+                    # lower tiff plus the fraction of tiff_diff for a given target yr
+                    tiff_target = lower_ar + (tiff_diff * ((yr_target - yr_low) / yr_diff))
+
+                    profile_updated = profile_lower.copy()
+                    profile_updated.update(dtype=rs.float32)
+
+                    with rs.open(path / output_ar, "w", **profile_updated) as dst:
+                        dst.write(tiff_target.astype(rs.float32), 1)
+
+            lower_beccs = f'{model}_BECCS_{ssp}-{rcp}_{yr_low}.tif'
+            upper_beccs = f'{model}_BECCS_{ssp}-{rcp}_{yr_up}.tif'
+            output_name = f'{model}_BECCS_{ssp}-{rcp}_sum{removal_step}GtCO2.tif'
+
+            with rs.open(path / lower_beccs) as src_low:
+                with rs.open(path / upper_beccs) as src_up:
+                    # read raster data and geospatial information
+                    lower_beccs = src_low.read(1)
+                    upper_beccs = src_up.read(1)
+                    profile_lower = src_low.profile
+
+                    lower_beccs = lower_beccs * 0.000001  # km2 to Mkm2
+                    upper_beccs = upper_beccs * 0.000001  # km2 to Mkm2
+
+                    yr_diff = yr_up - yr_low  # diff of known years
+                    tiff_diff = upper_beccs - lower_beccs  # diff of known tiffs
+
+                    # lower tiff plus the fraction of tiff_diff for a given target yr
+                    tiff_target = lower_beccs + (tiff_diff * ((yr_target - yr_low) / yr_diff))
+
+                    profile_updated = profile_lower.copy()
+                    profile_updated.update(dtype=rs.float32)
+
+                    with rs.open(path / output_name, "w", **profile_updated) as dst:
+                        dst.write(tiff_target.astype(rs.float32), 1)
