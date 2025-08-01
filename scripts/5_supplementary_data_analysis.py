@@ -31,6 +31,7 @@ path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiver
 path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
 sf_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/wab')
+cfs_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/cfs')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 
@@ -127,7 +128,7 @@ plt.show()
 # %% plot supplementary figure on CDR in refugia for combined removal levels (AR+BECCS)
 admin_sf = shapefile.Reader(sf_path / 'world-administrative-boundaries.shp')
 
-rcp_lvl = '19'  # select RCP level (without dot)
+rcp_lvl = '26'  # select RCP level (without dot)
 ssps = ['SSP1', 'SSP2', 'SSP3']
 models_3 = ['AIM', 'GLOBIOM', 'IMAGE']
 removal_lvls = [6, 10]
@@ -578,6 +579,7 @@ lc_data = lc_data[['Model', 'Scenario', 'Variable'] + years].copy()
 
 lc_data = pd.melt(lc_data, id_vars=['Model', 'Scenario', 'Variable'],
                   value_vars=years, var_name='Year', value_name='Value')
+lc_ar6 = lc_data.copy()
 
 # distinguish between energy cropland and other cropland
 cropland = lc_data.loc[lc_data['Variable'].isin(['Land Cover|Cropland'])]
@@ -728,6 +730,44 @@ plt.subplots_adjust(hspace=0.1)
 plt.subplots_adjust(wspace=0.3)
 sns.despine()
 plt.show()
+
+# %% calculate potentially disappeared fraction of species (PDF) based on CFs in Scherer et al.
+
+cf_var = 'CF_occ_avg_glo'  # choose 'CF_occ_avg_glo' or 'CF_occ_mar_glo'
+cf_df = pd.read_csv(cfs_path / 'CF_global.csv')
+cf_plant = cf_df.query('kingdom == "Plantae" & weighting == "land_use"').reset_index(drop=True)
+cf_plant = cf_plant[['kingdom', 'habitat', cf_var]].copy()
+
+cf_amal = cf_df.query('kingdom == "Animalia" & weighting == "land_use"'). reset_index(drop=True)
+
+# average the CF across species groups in the animalia kingdom
+cf_amal = cf_amal.groupby(['kingdom', 'habitat'], as_index=False)[cf_var].mean()
+
+# combine cfs for animalia and plantae
+cf_combi = pd.concat([cf_plant, cf_amal], ignore_index=True)
+
+# rename habitat intensisies (conservative approach) to have uniform names
+cf_combi['habitat'] = cf_combi['habitat'].str.replace('MinimalLight', 'Minimal')
+cf_combi['habitat'] = cf_combi['habitat'].str.replace('LightIntense', 'Light')
+
+# average the CFs across animalia and plantae kingdom
+cf_combi = cf_combi.groupby(['habitat'], as_index=False)[cf_var].mean()
+
+# create global scenario lc in m2 based on ar6 data
+lc_m2 = lc_ar6.copy()
+lc_m2['Value'] = lc_m2['Value'] * 10000000000  # Mha to m2
+lc_m2.replace({'Variable': {'Land Cover|Cropland': 'Cropland_Light',
+                            'Land Cover|Forest': 'Managed_forest_Light',
+                            'Land Cover|Pasture': 'Pasture_Light',
+                            'Land Cover|Cropland|Energy Crops': 'Plantation_Light',
+                            'Land Cover|Built-up Area': 'Urban_Light'}}, inplace=True)
+
+cf_df = pd.merge(lc_m2, cf_combi, left_on='Variable', right_on='habitat',
+                 how='inner')
+cf_df['PDFxYr'] = cf_df['Value'] * cf_df[cf_var]
+
+
+
 
 # %% explore reduction in CDR land for various sensitivities
 # load area-based criteria for beneficia/harmful effects on biodiversity
