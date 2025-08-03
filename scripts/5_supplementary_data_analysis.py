@@ -732,7 +732,6 @@ sns.despine()
 plt.show()
 
 # %% calculate potentially disappeared fraction of species (PDF) based on CFs in Scherer et al.
-
 cf_var = 'CF_occ_avg_glo'  # choose 'CF_occ_avg_glo' or 'CF_occ_mar_glo'
 cf_df = pd.read_csv(cfs_path / 'CF_global.csv')
 cf_plant = cf_df.query('kingdom == "Plantae" & weighting == "land_use"').reset_index(drop=True)
@@ -764,10 +763,21 @@ lc_m2.replace({'Variable': {'Land Cover|Cropland': 'Cropland_Light',
 
 cf_df = pd.merge(lc_m2, cf_combi, left_on='Variable', right_on='habitat',
                  how='inner')
-cf_df['PDFxYr'] = cf_df['Value'] * cf_df[cf_var]
+cf_df['PDF·Year'] = cf_df['Value'] * cf_df[cf_var]
+cf_df = cf_df.groupby(['Model', 'Scenario', 'Year'], as_index=False)['PDF·Year'].sum()
+cf_df['PDF·Year'] = cf_df['PDF·Year'].round(3)
 
+cd_yrs = ['2020', '2050']
+cf_df = cf_df.loc[cf_df['Year'].isin(cd_yrs)]
 
+cf_df.replace({'Model': {'AIM/CGE 2.0': 'AIM',
+                         'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
+                         'IMAGE 3.0.1': 'IMAGE',
+                         'GCAM 4.2': 'GCAM',
+                         'REMIND-MAgPIE 1.5': 'MAgPIE'}}, inplace=True)
 
+pdf_table = cf_df.pivot(index=['Scenario', 'Year'], columns='Model',
+                        values='PDF·Year').reset_index()
 
 # %% explore reduction in CDR land for various sensitivities
 # load area-based criteria for beneficia/harmful effects on biodiversity
