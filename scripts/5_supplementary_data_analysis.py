@@ -971,7 +971,7 @@ for scenario in scenarios:
             sns.despine()
             plt.show()
 
-# %%
+# %% plot supplementary figure on model agreement
 cell_thresholds = [0.1, 0.2]  # minimum thresholds for cell area shares
 model_agreement_thresholds = [2, 3]  # minimum thresholds for model agreement
 
@@ -1138,18 +1138,20 @@ for scenario in scenarios:
                     mpatches.Patch(color='gainsboro', label=f'Refugia at {warm} °C'),
                     mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
 
-                legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
-                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
-                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                legend = ax.legend(bbox_to_anchor=(-0.01, 0.11), handles=legend_patches, ncols=1,
+                                   loc='lower left', fontsize=11.5, handlelength=0.7,
+                                   handletextpad=0.5, borderpad=0.1, frameon=True)
 
                 legend.get_frame().set_alpha(1)
                 legend.get_frame().set_edgecolor('none')
 
-                ax.text(-177, -25, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
-                        fontweight='bold', zorder=10)
+                ax.text(-177, -19, 'Forestation', transform=ccrs.PlateCarree(),
+                        fontsize=11, fontweight='bold', zorder=10)
 
                 ax.text(-30, -58, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
-                        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
+                        transform=ccrs.PlateCarree(), fontsize=11.5, zorder=10)
+
+                ax.set_extent([-180, 167, -90, 90])
 
                 plt.show()
 
@@ -1178,17 +1180,19 @@ for scenario in scenarios:
                     mpatches.Patch(color='gainsboro', label=f'Refugia at {warm} °C'),
                     mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
 
-                legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
-                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
-                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                legend = ax.legend(bbox_to_anchor=(-0.01, 0.11), handles=legend_patches, ncols=1,
+                                   loc='lower left', fontsize=11.5, handlelength=0.7,
+                                   handletextpad=0.5, borderpad=0.1, frameon=True)
 
                 legend.get_frame().set_alpha(1)
                 legend.get_frame().set_edgecolor('none')
 
-                ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
-                        fontweight='bold', zorder=10)
+                ax.text(-177, -19, 'BECCS', transform=ccrs.PlateCarree(),
+                        fontsize=11, fontweight='bold', zorder=10)
 
                 ax.text(-30, -58, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
-                        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
+                        transform=ccrs.PlateCarree(), fontsize=11.5, zorder=10)
+
+                ax.set_extent([-180, 167, -90, 90])
 
                 plt.show()
