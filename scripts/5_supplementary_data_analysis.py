@@ -52,7 +52,12 @@ variables_adjust = ['Land Cover|Built-up Area', 'Other cropland',
 # %% plot supplementary figure on BECCS in Annex-I and Non-Annex I refugia
 
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
-area_df = load_and_concat('area_df_annex_group_temp_decline_not_allowed', paths)
+area_recov = load_and_concat('area_df_annex_group_temp_decline_allowed', paths)
+area_recov['BioRecov'] = 'Allowed'
+area_norecov = load_and_concat('area_df_annex_group_temp_decline_not_allowed', paths)
+area_norecov['BioRecov'] = 'Not allowed'
+
+area_df = pd.concat([area_recov, area_norecov]).reset_index(drop=True)
 
 rcps = ['19', '26', '45']  # specify RCPs that shall be plotted
 area_df = area_df.loc[area_df['RCP'].isin(rcps)]
