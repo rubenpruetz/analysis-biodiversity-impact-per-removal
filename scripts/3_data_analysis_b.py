@@ -401,6 +401,9 @@ avlo_norecov = pd. merge(avlo_norecov, refug_df, left_on='WarmNoCDR_stab',
                          right_on='Warming', suffixes=('', 'NoCDR'))
 avlo_norecov['AvLoNoCDR'] = (1 - (avlo_norecov['RemRefNoCDR'] / avlo_norecov['RemRef'])) * 100
 
+avlo_recov.drop(columns=['WarmingNoCDR', 'Warming'], inplace=True)
+avlo_norecov.drop(columns=['Warming_x', 'Warming_y', 'Warming'], inplace=True)
+
 avlo_df = pd.concat([avlo_recov, avlo_norecov]).reset_index(drop=True)
 
 # plot avoided warming loss of remaining refugia due to CDR
