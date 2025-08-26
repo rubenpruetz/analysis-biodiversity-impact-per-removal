@@ -70,7 +70,7 @@ rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
 all_rcps = sorted(area_df['RCP'].unique())
 
-fig, axes = plt.subplots(3, 2, figsize=(8, 8), sharex=True, sharey=False)
+fig, axes = plt.subplots(3, 2, figsize=(4.2, 7), sharex=True, sharey=False)
 sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "BECCS"'),
              x='Year', y='alloc_perc_ag1', palette=rcp_pal, hue='RCP',
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 0])
@@ -96,8 +96,9 @@ rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
 
 new_labels = [rename_dict.get(label, label) for label in labels]
 
-axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.02, 2.7), loc='upper left',
-                  ncols=3, columnspacing=1, handletextpad=0.4)
+axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.02, 2.78), loc='upper left',
+                  ncols=3, columnspacing=1, handletextpad=0.4, handlelength=0.9,
+                  fontsize=11)
 
 axes[0, 0].set_title('Annex I\n(BECCS)')
 axes[0, 1].set_title('Non-Annex I\n(BECCS)')
@@ -105,9 +106,9 @@ axes[0, 1].set_title('Non-Annex I\n(BECCS)')
 axes[2, 0].set_xlabel('')
 axes[2, 1].set_xlabel('')
 
-axes[0, 0].set_ylabel('AIM')
-axes[1, 0].set_ylabel('GLOBIOM')
-axes[2, 0].set_ylabel('IMAGE')
+axes[0, 0].set_ylabel('AIM', fontsize=12)
+axes[1, 0].set_ylabel('GLOBIOM', fontsize=12)
+axes[2, 0].set_ylabel('IMAGE', fontsize=12)
 
 axes[0, 1].set_ylabel('')
 axes[1, 1].set_ylabel('')
@@ -121,16 +122,18 @@ for ax in axes[:, 1]:
     ax.set_ylim([0, 5.5])
     ax.set_yticklabels([])
 
-fig.supylabel(f'Share of remaining refugia allocated for CDR [%] (SSP1-SSP3 range as shading)',
-              x=0.05, va='center', ha='center')
+fig.supylabel(f'Share of remaining refugia allocated for CDR [%]',
+              x=-0.01, va='center', ha='center', fontsize=13)
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
     ax.set_xticks([2020, 2100])
     ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
+    ax.tick_params(axis='x', labelsize=11.7)
+    ax.tick_params(axis='y', labelsize=11.2)
 
 plt.subplots_adjust(hspace=0.25)
-plt.subplots_adjust(wspace=0.2)
+plt.subplots_adjust(wspace=0.37)
 sns.despine()
 plt.show()
 
