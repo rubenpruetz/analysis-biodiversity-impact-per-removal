@@ -447,7 +447,7 @@ axes[2].set_xlabel('')
 axes[0].set_ylabel('AIM', fontsize=12)
 axes[1].set_ylabel('GLOBIOM', fontsize=12)
 axes[2].set_ylabel('IMAGE', fontsize=12)
-fig.supylabel(f'Share of remaining refugia conserved (+) or lost (-) due to CDR\n[%] (warming effect minus land allocation effect)',
+fig.supylabel(f"Share of remaining refugia conserved (+) or 'lost' (-) due to CDR\n[%] (warming effect minus land allocation effect)",
               x=-0.38, va='center', ha='center', fontsize=13)
 
 for ax in axes.flat:
