@@ -49,6 +49,10 @@ variables_adjust = ['Land Cover|Built-up Area', 'Other cropland',
                     'Land Cover|Forest', 'Energy cropland (for BECCS)',
                     'Energy cropland (not for BECCS)', 'Land Cover|Pasture']
 
+tcre_df = pd.read_csv(path_ar6_data / 'tcre_estimates.csv')
+p50_est = float(tcre_df[(tcre_df['Source'] == 'Own trans') &
+                        (tcre_df['Estimate'] == 'point')]['Value'].iloc[0])
+
 # %% plot supplementary figure on BECCS in Annex-I and Non-Annex I refugia
 
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
@@ -127,6 +131,128 @@ for ax in axes.flat:
 
 plt.subplots_adjust(hspace=0.25)
 plt.subplots_adjust(wspace=0.2)
+sns.despine()
+plt.show()
+
+# %% plot supplementary figure on avoided warming-related refugia loss due to CDR
+models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1']
+scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
+             'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
+             'SSP2-60', 'SSP3-Baseline', 'SSP3-34', 'SSP3-45', 'SSP3-60']
+variable = ['AR6 climate diagnostics|Surface Temperature (GSAT)|MAGICCv7.5.3|50.0th Percentile']
+
+ar6_data = ar6_db.loc[ar6_db['Variable'].isin(variable)]
+ar6_data = ar6_data.loc[ar6_data['Model'].isin(models)]
+ar6_data = ar6_data.loc[ar6_data['Scenario'].isin(scenarios)]
+
+# rename models for the subsequent step
+ar6_data.replace({'Model': {'AIM/CGE 2.0': 'AIM',
+                            'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
+                            'IMAGE 3.0.1': 'IMAGE'}}, inplace=True)
+
+paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
+ar_removal = load_and_concat('ar_removal', paths)
+beccs_removal = load_and_concat('beccs_removal', paths)
+
+# calculate cumulative removals and avoided warming based on TCRE
+ar_cum = cum_cdr_calc(ar_removal)
+ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000  # x1000 since Gt not Mt
+
+beccs_cum = cum_cdr_calc(beccs_removal)
+beccs_cum['CoolBECCS'] = beccs_cum['Cum'] * p50_est * 1000
+
+# estimate additional warming if AR and BECCS are excluded
+ar6_data_m = pd.melt(ar6_data, id_vars=['Model', 'Scenario'], value_vars=years,
+                     var_name='Year', value_name='Warming')
+ar6_data_m['Year'] = ar6_data_m['Year'].astype(int)
+
+add_warm = pd.merge(ar6_data_m, ar_cum[['Model', 'Scenario', 'Year', 'CoolAR']],
+                    on=['Model', 'Scenario', 'Year'], how='left')
+add_warm = pd.merge(add_warm, beccs_cum[['Model', 'Scenario', 'Year', 'CoolBECCS']],
+                    on=['Model', 'Scenario', 'Year'], how='left')
+add_warm.fillna(0, inplace=True)  # account for scenarios with only one CDR option
+add_warm['WarmNoAR'] = add_warm['Warming'] + add_warm['CoolAR']
+add_warm['WarmNoBECCS'] = add_warm['Warming'] + add_warm['CoolBECCS']
+add_warm['WarmNoCDR'] = add_warm['Warming'] + add_warm['CoolAR'] + add_warm['CoolBECCS']
+round_cols = ['Warming', 'WarmNoAR', 'WarmNoBECCS', 'WarmNoCDR']
+add_warm[round_cols] = add_warm[round_cols].round(2)
+
+# estimate warming curve for warming and WarmNoCDR if there were no decline
+add_warm = add_warm.sort_values(['Model', 'Scenario', 'Year']).copy()
+grouped = add_warm.groupby(['Model', 'Scenario'])
+add_warm['Warming_stab'] = grouped['Warming'].cummax()
+add_warm['WarmNoCDR_stab'] = grouped['WarmNoCDR'].cummax()
+
+# create lookup table for global climate refugia size per warming level
+warm_list = [round(x, 2) for x in np.arange(1.0, 4.51, 0.01)]
+refugia_size = []
+
+for warm in warm_list:
+    bio_area = land_area_calculation(path_uea, f'bio{warm}_bin.tif')
+    bio_area_agg = pos_val_summer(bio_area, squeeze=True)
+    refugia_size.append((warm, bio_area_agg))
+
+refug_df = pd.DataFrame(refugia_size, columns=['Warming', 'RemRef'])
+
+# estimate avoided refugia loss due to CDR for both recovery assumptions
+avlo_recov = add_warm.copy()
+avlo_recov = pd. merge(avlo_recov, refug_df, left_on='Warming', right_on='Warming')
+avlo_recov = pd. merge(avlo_recov, refug_df, left_on='WarmNoCDR',
+                       right_on='Warming',  suffixes=('', 'NoCDR'))
+avlo_recov['AvLoNoCDR'] = (1 - (avlo_recov['RemRefNoCDR'] / avlo_recov['RemRef'])) * 100
+
+avlo_norecov = add_warm.copy()
+avlo_norecov = pd. merge(avlo_norecov, refug_df, left_on='Warming_stab', right_on='Warming')
+avlo_norecov = pd. merge(avlo_norecov, refug_df, left_on='WarmNoCDR_stab',
+                         right_on='Warming', suffixes=('', 'NoCDR'))
+avlo_norecov['AvLoNoCDR'] = (1 - (avlo_norecov['RemRefNoCDR'] / avlo_norecov['RemRef'])) * 100
+
+avlo_recov.drop(columns=['WarmingNoCDR', 'Warming'], inplace=True)
+avlo_norecov.drop(columns=['Warming_x', 'Warming_y', 'Warming'], inplace=True)
+
+avlo_df = pd.concat([avlo_recov, avlo_norecov]).reset_index(drop=True)
+
+# plot avoided warming loss of remaining refugia due to CDR
+avlo_df['SSP'] = avlo_df['Scenario'].str.split('-').str[0]
+avlo_df['RCP'] = avlo_df['Scenario'].str.split('-').str[1]
+
+# drop AIM RCP1.9 as forestation removal variable is missing
+avlo_df.drop(avlo_df[(avlo_df['Model'] == 'AIM') &
+                     (avlo_df['RCP'] == '19')].index, inplace=True)
+
+avlo_df = avlo_df.loc[avlo_df['RCP'].isin(rcps)]  # specify RCPs to plot
+
+# plot avoided loss as negative
+avlo_df['AvLoNoCDR_invers'] = avlo_df['AvLoNoCDR'] * -1
+
+fig, axes = plt.subplots(3, 1, figsize=(1.8, 7), sharex=True, sharey=True)
+sns.lineplot(data=avlo_df.query('Model == "AIM"'), x='Year', y='AvLoNoCDR_invers',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', legend=False, ax=axes[0])
+sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'), x='Year', y='AvLoNoCDR_invers',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', legend=False, ax=axes[1])
+sns.lineplot(data=avlo_df.query('Model == "IMAGE"'), x='Year', y='AvLoNoCDR_invers',
+             hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
+             estimator='median', legend=False, ax=axes[2])
+
+axes[0].set_title('Global\n(Both)', fontsize=13.5)
+axes[2].set_xlabel('')
+axes[0].set_ylabel('AIM', fontsize=12)
+axes[1].set_ylabel('GLOBIOM', fontsize=12)
+axes[2].set_ylabel('IMAGE', fontsize=12)
+fig.supylabel(f'Share of remaining refugia lost when excluding CDR [%]',
+              x=-0.35, va='center', ha='center', fontsize=13)
+
+for ax in axes.flat:
+    ax.set_xlim(2020, 2100)
+    ax.set_xticks([2020, 2100])
+    ax.set_ylim(-25, 0)
+    ax.tick_params(axis='x', labelsize=11.7)
+    ax.tick_params(axis='y', labelsize=11.2)
+    ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
+
+plt.subplots_adjust(hspace=0.23)
 sns.despine()
 plt.show()
 
