@@ -343,7 +343,11 @@ plt.subplots_adjust(wspace=0.5)
 sns.despine()
 plt.show()
 
-# %% plot avoided warming-related refugia loss due to CDR
+# %% calculate net refugia effect (avoided warming minus land use effect)
+
+area_df = area_df.groupby(['Model', 'SSP', 'RCP', 'Year', 'BioRecov'],
+                          as_index=False)['alloc_perc'].sum()
+
 paths = {'GLOBIOM': path_globiom, 'AIM': path_aim, 'IMAGE': path_image}
 ar_removal = load_and_concat('ar_removal', paths)
 beccs_removal = load_and_concat('beccs_removal', paths)
@@ -393,16 +397,19 @@ avlo_recov = add_warm.copy()
 avlo_recov = pd. merge(avlo_recov, refug_df, left_on='Warming', right_on='Warming')
 avlo_recov = pd. merge(avlo_recov, refug_df, left_on='WarmNoCDR',
                        right_on='Warming',  suffixes=('', 'NoCDR'))
-avlo_recov['AvLoNoCDR'] = (1 - (avlo_recov['RemRefNoCDR'] / avlo_recov['RemRef'])) * 100
+avlo_recov['AvLoCDR'] = (1 - (avlo_recov['RemRefNoCDR'] / avlo_recov['RemRef'])) * 100
 
 avlo_norecov = add_warm.copy()
 avlo_norecov = pd. merge(avlo_norecov, refug_df, left_on='Warming_stab', right_on='Warming')
 avlo_norecov = pd. merge(avlo_norecov, refug_df, left_on='WarmNoCDR_stab',
                          right_on='Warming', suffixes=('', 'NoCDR'))
-avlo_norecov['AvLoNoCDR'] = (1 - (avlo_norecov['RemRefNoCDR'] / avlo_norecov['RemRef'])) * 100
+avlo_norecov['AvLoCDR'] = (1 - (avlo_norecov['RemRefNoCDR'] / avlo_norecov['RemRef'])) * 100
 
 avlo_recov.drop(columns=['WarmingNoCDR', 'Warming'], inplace=True)
 avlo_norecov.drop(columns=['Warming_x', 'Warming_y', 'Warming'], inplace=True)
+
+avlo_recov['BioRecov'] = 'Allowed'
+avlo_norecov['BioRecov'] = 'Not allowed'
 
 avlo_df = pd.concat([avlo_recov, avlo_norecov]).reset_index(drop=True)
 
@@ -416,17 +423,22 @@ avlo_df.drop(avlo_df[(avlo_df['Model'] == 'AIM') &
 
 avlo_df = avlo_df.loc[avlo_df['RCP'].isin(rcps)]  # specify RCPs to plot
 
-# plot avoided loss as negative
-avlo_df['AvLoNoCDR_invers'] = avlo_df['AvLoNoCDR'] * -1
+net_df = pd.merge(area_df,
+                  avlo_df[['Model', 'SSP', 'RCP', 'Year', 'BioRecov', 'AvLoCDR']],
+                  on=['Model', 'SSP', 'RCP', 'Year', 'BioRecov'],
+                  how='inner')
 
+net_df['net_effect'] = net_df['AvLoCDR'] - net_df['alloc_perc']
+
+# plot net refugia effect (avoided warming minus land use change)
 fig, axes = plt.subplots(3, 1, figsize=(1.8, 7), sharex=True, sharey=True)
-sns.lineplot(data=avlo_df.query('Model == "AIM"'), x='Year', y='AvLoNoCDR_invers',
+sns.lineplot(data=net_df.query('Model == "AIM"'), x='Year', y='net_effect',
              hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
              estimator='median', legend=False, ax=axes[0])
-sns.lineplot(data=avlo_df.query('Model == "GLOBIOM"'), x='Year', y='AvLoNoCDR_invers',
+sns.lineplot(data=net_df.query('Model == "GLOBIOM"'), x='Year', y='net_effect',
              hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
              estimator='median', legend=False, ax=axes[1])
-sns.lineplot(data=avlo_df.query('Model == "IMAGE"'), x='Year', y='AvLoNoCDR_invers',
+sns.lineplot(data=net_df.query('Model == "IMAGE"'), x='Year', y='net_effect',
              hue='RCP', palette=rcp_pal, errorbar=('pi', 100),
              estimator='median', legend=False, ax=axes[2])
 
@@ -435,13 +447,14 @@ axes[2].set_xlabel('')
 axes[0].set_ylabel('AIM', fontsize=12)
 axes[1].set_ylabel('GLOBIOM', fontsize=12)
 axes[2].set_ylabel('IMAGE', fontsize=12)
-fig.supylabel(f'Share of remaining refugia lost when excluding CDR [%]',
-              x=-0.35, va='center', ha='center', fontsize=13)
+fig.supylabel(f'Share of remaining refugia conserved (+) or lost (-) due to CDR\n[%] (warming effect minus land allocation effect)',
+              x=-0.38, va='center', ha='center', fontsize=13)
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
     ax.set_xticks([2020, 2100])
-    ax.set_ylim(-25, 0)
+    ax.set_ylim(-10, 15)
+    ax.set_yticks([-10, -5, 0, 5, 10, 15])
     ax.tick_params(axis='x', labelsize=11.7)
     ax.tick_params(axis='y', labelsize=11.2)
     ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.8)
