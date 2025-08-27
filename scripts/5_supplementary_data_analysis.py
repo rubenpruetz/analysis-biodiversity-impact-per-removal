@@ -1085,12 +1085,12 @@ for scenario in scenarios:
                            columnspacing=0.6, handletextpad=0.5, frameon=False, fontsize=12)
             axes[0].add_artist(legend1)
 
-            axes[0].set_xlabel(f'No CDR within {warm} °C resilient \nbiodiversity hotspots', fontsize=11)
-            axes[1].set_xlabel('No CDR within current \nbiodiversity hotspots', fontsize=11)
-            axes[2].set_xlabel(f'No CDR within {warm} °C resilient \nclimate refugia', fontsize=11)
+            axes[0].set_xlabel(f'No CDR within {warm} °C resilient\nbiodiversity hotspots', fontsize=11)
+            axes[1].set_xlabel('No CDR within current\nbiodiversity hotspots', fontsize=11)
+            axes[2].set_xlabel(f'No CDR within {warm} °C resilient\nclimate refugia', fontsize=11)
             axes[0].set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
-            axes[0].set_ylabel(f'Reduction in land allocated for CDR in {scenario} [%] \n(median and individual model estimate)',
-                                   fontsize=12)
+            axes[0].set_ylabel(f'Reduction in land allocated for CDR in {scenario} [%]\n(median and individual model estimate)',
+                               fontsize=12)
 
             for ax in axes.flat:
                 ax.grid(True, axis='y', linestyle='--', linewidth=0.5, alpha=0.7)

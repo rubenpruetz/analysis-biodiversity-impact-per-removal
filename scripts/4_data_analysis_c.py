@@ -158,10 +158,10 @@ axes[0].legend(bbox_to_anchor=(-0.05, 1.1), loc='upper left', ncols=5,
                columnspacing=0.6, handletextpad=0.5, frameon=False, fontsize=12)
 axes[0].add_artist(legend1)
 
-axes[0].set_xlabel('No CDR within 1.8 °C resilient \nbiodiversity hotspots', fontsize=11)
-axes[1].set_xlabel('No CDR within current \nbiodiversity hotspots', fontsize=11)
-axes[2].set_xlabel('No CDR within 1.8 °C resilient \nclimate refugia', fontsize=11)
-axes[0].set_ylabel('Reduction in land allocated for CDR in SSP2-26 [%] \n(median and individual model estimate)',
+axes[0].set_xlabel('No CDR within 1.8 °C resilient\nbiodiversity hotspots', fontsize=11)
+axes[1].set_xlabel('No CDR within current\nbiodiversity hotspots', fontsize=11)
+axes[2].set_xlabel('No CDR within 1.8 °C resilient\nclimate refugia', fontsize=11)
+axes[0].set_ylabel('Reduction in land allocated for CDR in SSP2-26 [%]\n(median and individual model estimate)',
                    fontsize=12)
 
 for ax in axes.flat:
@@ -310,7 +310,7 @@ img_ar = ax.imshow(data_ar, extent=extent_ar, transform=ccrs.PlateCarree(),
                    origin='upper', cmap=PotBen, norm=norm_PotBen)
 
 img_ar_n = ax.imshow(data_ar_n, extent=extent_ar_n, transform=ccrs.PlateCarree(),
-                      origin='upper', cmap=LikHarm, norm=norm_LikHarm)
+                     origin='upper', cmap=LikHarm, norm=norm_LikHarm)
 
 ax.coastlines(linewidth=0.2)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
@@ -322,8 +322,8 @@ legend_patches = [
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
 
 legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
-                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
-                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                   handletextpad=0.5, borderpad=1.5, frameon=True)
 
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
@@ -362,8 +362,8 @@ legend_patches = [
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
 
 legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
-                                   loc='lower left', fontsize=9.5, columnspacing=0.8,
-                                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                   loc='lower left', fontsize=9.5, columnspacing=0.8,
+                   handletextpad=0.5, borderpad=1.5, frameon=True)
 
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
