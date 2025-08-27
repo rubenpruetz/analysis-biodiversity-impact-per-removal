@@ -119,30 +119,30 @@ model_colors = {'AIM': 'darkslategrey', 'GCAM': '#997700', 'GLOBIOM': 'blueviole
 cdr_colors = {'Forestation': 'crimson', 'BECCS': 'darkorange',
               'Both': 'lightsteelblue'}
 
-sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs_res"'), x='Year',
+sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs"'), x='Year',
             y='Value', hue='CDR_option', legend=True, alpha=0.6, palette=cdr_colors,
             gap=0, estimator='median', errorbar=('pi', 100), ax=axes[0])
 
 for model, color in model_colors.items():
-    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs_res"'),
+    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs"'),
                   x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
                   s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[0])
 
-sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs"'), x='Year',
+sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_bio"'), x='Year',
             y='Value', hue='CDR_option', legend=False, alpha=0.6, palette=cdr_colors,
             gap=0, estimator='median', errorbar=('pi', 100), ax=axes[1])
 
 for model, color in model_colors.items():
-    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs"'),
+    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_bio"'),
                   x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
                   s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[1])
 
-sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_bio"'), x='Year',
+sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs_res"'), x='Year',
             y='Value', hue='CDR_option', legend=False, alpha=0.6, palette=cdr_colors,
             gap=0, estimator='median', errorbar=('pi', 100), ax=axes[2])
 
 for model, color in model_colors.items():
-    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_bio"'),
+    sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs_res"'),
                   x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
                   s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[2])
 
@@ -158,10 +158,10 @@ axes[0].legend(bbox_to_anchor=(-0.05, 1.1), loc='upper left', ncols=5,
                columnspacing=0.6, handletextpad=0.5, frameon=False, fontsize=12)
 axes[0].add_artist(legend1)
 
-axes[0].set_xlabel('No CDR within 1.8 °C resilient\nbiodiversity hotspots', fontsize=11)
-axes[1].set_xlabel('No CDR within current\nbiodiversity hotspots', fontsize=11)
-axes[2].set_xlabel('No CDR within 1.8 °C resilient\nclimate refugia', fontsize=11)
-axes[0].set_ylabel('Reduction in land allocated for CDR in SSP2-26 [%]\n(median and individual model estimate)',
+axes[0].set_xlabel('Criteria A: No CDR within \ncurrent biodiversity hotspots', fontsize=11)
+axes[1].set_xlabel('Criteria B: No CDR within\n1.8 °C resilient climate refugia', fontsize=11)
+axes[2].set_xlabel('Criteria AB: No CDR within\n1.8 °C resilient biodiversity hotspots', fontsize=11)
+axes[0].set_ylabel('Reduction in CDR land available for allocation in SSP2-26 [%]\n(median and individual model estimate)',
                    fontsize=12)
 
 for ax in axes.flat:

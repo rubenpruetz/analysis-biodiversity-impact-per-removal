@@ -566,6 +566,8 @@ area_df['RCP'] = area_df['Scenario'].str.split('-').str[1]
 ar_land = area_df.query('Cdr_option == "Afforestation"').reset_index(drop=True)
 beccs_land = area_df.query('Cdr_option == "BECCS"').reset_index(drop=True)
 
+ar_land = ar_land.loc[ar_land['RCP'].isin(rcps)]
+beccs_land = beccs_land.loc[beccs_land['RCP'].isin(rcps)]
 
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
@@ -1046,30 +1048,30 @@ for scenario in scenarios:
             cdr_colors = {'Forestation': 'crimson', 'BECCS': 'darkorange',
                           'Both': 'lightsteelblue'}
 
-            sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs_res"'), x='Year',
+            sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs"'), x='Year',
                         y='Value', hue='CDR_option', legend=True, alpha=0.6, palette=cdr_colors,
                         gap=0, estimator='median', errorbar=('pi', 100), ax=axes[0])
 
             for model, color in model_colors.items():
-                sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs_res"'),
+                sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs"'),
                               x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
                               s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[0])
 
-            sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs"'), x='Year',
+            sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_bio"'), x='Year',
                         y='Value', hue='CDR_option', legend=False, alpha=0.6, palette=cdr_colors,
                         gap=0, estimator='median', errorbar=('pi', 100), ax=axes[1])
 
             for model, color in model_colors.items():
-                sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs"'),
+                sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_bio"'),
                               x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
                               s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[1])
 
-            sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_bio"'), x='Year',
+            sns.barplot(data=exclu_df.query('Reduct_criteria == "Reduct_hs_res"'), x='Year',
                         y='Value', hue='CDR_option', legend=False, alpha=0.6, palette=cdr_colors,
                         gap=0, estimator='median', errorbar=('pi', 100), ax=axes[2])
 
             for model, color in model_colors.items():
-                sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_bio"'),
+                sns.stripplot(data=exclu_df.query(f'Model == "{model}" & Reduct_criteria == "Reduct_hs_res"'),
                               x='Year', y='Value', hue='CDR_option', dodge=True, jitter=0,
                               s=5, marker='o', edgecolor=color, linewidth=5, legend=False, ax=axes[2])
 
@@ -1085,11 +1087,11 @@ for scenario in scenarios:
                            columnspacing=0.6, handletextpad=0.5, frameon=False, fontsize=12)
             axes[0].add_artist(legend1)
 
-            axes[0].set_xlabel(f'No CDR within {warm} °C resilient\nbiodiversity hotspots', fontsize=11)
-            axes[1].set_xlabel('No CDR within current\nbiodiversity hotspots', fontsize=11)
-            axes[2].set_xlabel(f'No CDR within {warm} °C resilient\nclimate refugia', fontsize=11)
+            axes[0].set_xlabel(f'Criteria A: No CDR within \ncurrent biodiversity hotspots', fontsize=11)
+            axes[1].set_xlabel(f'Criteria B: No CDR within\n{warm} °C resilient climate refugia', fontsize=11)
+            axes[2].set_xlabel(f'Criteria AB: No CDR within\n{warm} °C resilient biodiversity hotspots', fontsize=11)
             axes[0].set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
-            axes[0].set_ylabel(f'Reduction in land allocated for CDR in {scenario} [%]\n(median and individual model estimate)',
+            axes[0].set_ylabel(f'Reduction in CDR land available for allocation in {scenario} [%]\n(median and individual model estimate)',
                                fontsize=12)
 
             for ax in axes.flat:
