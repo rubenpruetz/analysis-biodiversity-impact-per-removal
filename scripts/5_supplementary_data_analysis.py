@@ -1039,12 +1039,13 @@ for scenario in scenarios:
                                value_name='Value')
 
             exclu_df.replace({'CDR_option': {'Afforestation': 'Forestation'}}, inplace=True)
+            exclu_df.replace({'Model': {'MAgPIE': 'REMIND-MAgPIE'}}, inplace=True)
 
             # plot reduction in land allocated for CDR
             fig, axes = plt.subplots(1, 3, figsize=(12, 6), sharex=True, sharey=True)
 
             model_colors = {'AIM': 'darkslategrey', 'GCAM': '#997700', 'GLOBIOM': 'blueviolet',
-                            'IMAGE': 'royalblue', 'MAgPIE': '#994455'}
+                            'IMAGE': 'royalblue', 'REMIND-MAgPIE': '#994455'}
             cdr_colors = {'Forestation': 'crimson', 'BECCS': 'darkorange',
                           'Both': 'lightsteelblue'}
 
@@ -1079,9 +1080,9 @@ for scenario in scenarios:
                                     markerfacecolor=color, markeredgecolor='none', markersize=10)
                              for label, color in model_colors.items()]
 
-            legend1 = axes[0].legend(handles=model_patches, bbox_to_anchor=(1.3, 1.1),
-                                     loc='upper left', ncols=5, columnspacing=0.6,
-                                     handletextpad=0.5, frameon=False, fontsize=12)
+            legend1 = axes[0].legend(handles=model_patches, bbox_to_anchor=(1.25, 1.1),
+                                     loc='upper left', ncols=5, columnspacing=0.4,
+                                     handletextpad=0.1, frameon=False, fontsize=12)
 
             axes[0].legend(bbox_to_anchor=(-0.05, 1.1), loc='upper left', ncols=5,
                            columnspacing=0.6, handletextpad=0.5, frameon=False, fontsize=12)
