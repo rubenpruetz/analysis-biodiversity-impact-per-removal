@@ -4,7 +4,7 @@ This is the repository for the analysis of CDR implications for biodiversity ref
 # Overview of project scripts
 The project is composed of the following Python scripts:
 - **required_functions.py:** This script contains the required project functions.
-- **1_data_preprocessing.py:** This script preprocesses the climate refugia data and the scenario-based land use data (from the models AIM, GLOBIOM, and IMAGE). This is necessary to ensure a uniform spatial resolution, a uniform Coordinate Reference System, and uniform units. The scripts also includes further preprocessing steps and tests for the subsequent analysis steps, as detailed in the script itself.
+- **1_data_preprocessing.py:** This script preprocesses the climate refugia data and the scenario-based land use data (from the models AIM, GCAM, GLOBIOM, IMAGE, and REMIND-MAgPIE). This is necessary to ensure a uniform spatial resolution, a uniform Coordinate Reference System, and uniform units. The scripts also includes further preprocessing steps and tests for the subsequent analysis steps, as detailed in the script itself.
 - **2_data_analysis.py:** This script is used to calculate CO2 removal per scenario and model for 2020-2100, to calculate afforestation and BECCS land per scenario for 2020-2100, and to calculate land-per-removal per scenario for afforestation and BECCS for 2020-2100.
 - **3_data_analysis_b.py:** This script is used to combine and plot the data, underlying the produced figures.
 
@@ -41,9 +41,7 @@ Alternatively, the scripts can be run in various integrated development environm
 
 # Data availability
 Spatially-explicit analysis outputs can be made available upon reasonable request.
-Underlying data on climate refugia, land use from GLOBIOM and IMAGE, and energy
-crops and residues from AIM, GLOBIOM, and IMAGE can be made available upon
-reasonable request by the individual modelling teams.
+Underlying data on climate refugia can be made available upon reasonable request.
 
 Underlying data on the WWF G200 ecoregions is available at:
 https://databasin.org/datasets/a5b34649cc69417ba52ac8e2dce34c3b/
