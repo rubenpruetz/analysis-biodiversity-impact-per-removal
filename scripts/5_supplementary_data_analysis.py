@@ -262,6 +262,48 @@ plt.subplots_adjust(hspace=0.23)
 sns.despine()
 plt.show()
 
+# plot supplementary figure on the warming curves underlying CDR exclusion and recovery assumptions
+warm_df = pd.merge(avlo_df, ar6_data_m, on=['Model', 'Scenario', 'Year'],
+                   how='inner')
+
+all_rcps = sorted(warm_df['RCP'].unique())
+fig, axes = plt.subplots(1, 2, figsize=(8, 5), sharey=True)
+
+sns.lineplot(data=warm_df, x='Year', y='Warming_stab', hue='RCP',
+             palette=rcp_pal, errorbar=('pi', 100), hue_order=all_rcps, 
+             ax=axes[0])
+sns.lineplot(data=warm_df, x='Year', y='WarmNoCDR_stab', hue='RCP',
+             palette=rcp_pal, errorbar=('pi', 100),
+             linestyle='--', legend=False, ax=axes[0])
+
+sns.lineplot(data=warm_df, x='Year', y='Warming', hue='RCP',
+             palette=rcp_pal, errorbar=('pi', 100), legend=False, ax=axes[1])
+sns.lineplot(data=warm_df, x='Year', y='WarmNoCDR', hue='RCP',
+             palette=rcp_pal, errorbar=('pi', 100),
+             linestyle='--', legend=False, ax=axes[1])
+
+for ax in axes.flat:
+    ax.set_xlim(2020, 2100)
+    ax.set_xticks([2020, 2100])
+    ax.set_ylim([1.1, 3])
+axes[0].set_xlabel('Warming curves for no refugia recovery')
+axes[1].set_xlabel('Warming curves for full refugia recovery')
+axes[0].set_ylabel('Global mean surface air temperature [°C]\n(model range and SSP1-SSP3 range as shading)', fontsize=11)
+axes[1].set_ylabel('')
+
+fig.text(0.56, 0.9, f'Solid: CO$_2$ removal included\nDashed: CO$_2$ removal excluded',
+         ha='left', va='top')
+
+handles, labels = axes[0].get_legend_handles_labels()
+rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
+new_labels = [rename_dict.get(label, label) for label in labels]
+axes[0].legend(handles, new_labels, bbox_to_anchor=(0.03, 1.045), ncols=3,
+               loc='upper left', columnspacing=1, handlelength=0.7,
+               handletextpad=0.4)
+
+sns.despine()
+plt.show()
+
 # %% plot supplementary figure on CDR in refugia for combined removal levels (AR+BECCS)
 admin_sf = shapefile.Reader(sf_path / 'world-administrative-boundaries.shp')
 
