@@ -139,14 +139,14 @@ sns.despine()
 plt.show()
 
 # %% plot supplementary figure on avoided warming-related refugia loss due to CDR
-models = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1']
+models_3 = ['MESSAGE-GLOBIOM 1.0', 'AIM/CGE 2.0', 'IMAGE 3.0.1']
 scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
              'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
              'SSP2-60', 'SSP3-Baseline', 'SSP3-34', 'SSP3-45', 'SSP3-60']
 variable = ['AR6 climate diagnostics|Surface Temperature (GSAT)|MAGICCv7.5.3|50.0th Percentile']
 
 ar6_data = ar6_db.loc[ar6_db['Variable'].isin(variable)]
-ar6_data = ar6_data.loc[ar6_data['Model'].isin(models)]
+ar6_data = ar6_data.loc[ar6_data['Model'].isin(models_3)]
 ar6_data = ar6_data.loc[ar6_data['Scenario'].isin(scenarios)]
 
 # rename models for the subsequent step
@@ -625,7 +625,7 @@ axes[0, 0].set_ylabel('AIM', fontsize=11)
 axes[1, 0].set_ylabel('GCAM', fontsize=11)
 axes[2, 0].set_ylabel('GLOBIOM', fontsize=11)
 axes[3, 0].set_ylabel('IMAGE', fontsize=11)
-axes[4, 0].set_ylabel('MAgPIE', fontsize=11)
+axes[4, 0].set_ylabel('REMIND-MAgPIE', fontsize=11)
 
 axes[0, 0].set_title('SSP1')
 axes[0, 1].set_title('SSP2')
@@ -692,7 +692,7 @@ axes[0, 0].set_ylabel('AIM', fontsize=11)
 axes[1, 0].set_ylabel('GCAM', fontsize=11)
 axes[2, 0].set_ylabel('GLOBIOM', fontsize=11)
 axes[3, 0].set_ylabel('IMAGE', fontsize=11)
-axes[4, 0].set_ylabel('MAgPIE', fontsize=11)
+axes[4, 0].set_ylabel('REMIND-MAgPIE', fontsize=11)
 
 axes[0, 0].set_title('SSP1')
 axes[0, 1].set_title('SSP2')
@@ -854,7 +854,7 @@ axes[0, 0].set_ylabel('AIM', fontsize=11)
 axes[1, 0].set_ylabel('GCAM', fontsize=11)
 axes[2, 0].set_ylabel('GLOBIOM', fontsize=11)
 axes[3, 0].set_ylabel('IMAGE', fontsize=11)
-axes[4, 0].set_ylabel('MAgPIE', fontsize=11)
+axes[4, 0].set_ylabel('REMIND-MAgPIE', fontsize=11)
 
 axes[0, 0].set_title('1.5 °C')
 axes[0, 1].set_title('2 °C')
@@ -939,7 +939,6 @@ for scenario in scenarios:
             hs_resil = hotspot_repro * res_bio
 
             # estimate reduction in land allocation when excluding areas
-            models = ['AIM', 'GCAM', 'GLOBIOM', 'IMAGE', 'MAgPIE']
             years = [2030, 2050, 2100]
 
             exclu_df = pd.DataFrame(columns=['Model', 'CDR_option', 'Year', 'CDR_land',
@@ -1018,7 +1017,7 @@ for scenario in scenarios:
                             continue
 
             # ensure all unique combinations are in df
-            all_combi = pd.DataFrame(list(itertools.product(models, cdr_options, years)),
+            all_combi = pd.DataFrame(list(itertools.product(model_fam, cdr_options, years)),
                                      columns=['Model', 'CDR_option', 'Year'])
             exclu_df = pd.merge(all_combi, exclu_df, on=['Model', 'CDR_option', 'Year'],
                                 how='left')
