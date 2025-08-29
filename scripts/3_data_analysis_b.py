@@ -255,13 +255,13 @@ sns.lineplot(data=area_df.query('Model == "IMAGE" & mitigation_option == "Affore
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 0])
 
 sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "BECCS"'),
-             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             x='Year', y='alloc_perc', palette=rcp_pal, hue='RCP',
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 1])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM" & mitigation_option == "BECCS"'),
-             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             x='Year', y='alloc_perc', palette=rcp_pal, hue='RCP',
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[1, 1])
 sns.lineplot(data=area_df.query('Model == "IMAGE" & mitigation_option == "BECCS"'),
-             x='Year', y='alloc_perc_ag2', palette=rcp_pal, hue='RCP',
+             x='Year', y='alloc_perc', palette=rcp_pal, hue='RCP',
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 1])
 
 sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "Afforestation"'),
