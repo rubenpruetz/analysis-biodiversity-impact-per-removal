@@ -145,7 +145,7 @@ for scenario in scenarios:
                                                             masked=True)
         total_forest = sum(forest_dict.values())
         total_forest = total_forest * 0.01  # 0-100 --> 0-1
-        total_forest = total_forest.clip(max=1) # cap at 1
+        total_forest = total_forest.clip(max=1)  # cap at 1
         total_f_name = f'GCAM_forest_total_{scenario}_{year}.tif'
         total_forest.rio.to_raster(path_gcam / total_f_name, driver='GTiff')
 
