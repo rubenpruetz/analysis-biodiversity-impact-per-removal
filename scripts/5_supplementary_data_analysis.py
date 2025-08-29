@@ -69,7 +69,6 @@ area_df = area_df.loc[area_df['RCP'].isin(rcps)]
 
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
-all_rcps = sorted(area_df['RCP'].unique())
 
 fig, axes = plt.subplots(3, 2, figsize=(4.2, 7), sharex=True, sharey=False)
 sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "BECCS"'),
@@ -160,7 +159,7 @@ beccs_removal = load_and_concat('beccs_removal', paths)
 
 # calculate cumulative removals and avoided warming based on TCRE
 ar_cum = cum_cdr_calc(ar_removal)
-ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000  # x1000 since Gt not Mt
+ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000  # x1000 for Gt to Mt
 
 beccs_cum = cum_cdr_calc(beccs_removal)
 beccs_cum['CoolBECCS'] = beccs_cum['Cum'] * p50_est * 1000
@@ -399,7 +398,6 @@ beccs_removal = beccs_removal.loc[beccs_removal['Scenario'].isin(scenarios)]
 
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
-all_rcps = sorted(ar_removal['RCP'].unique())
 
 # plot removal via forestation
 fig, axes = plt.subplots(3, 3, figsize=(6, 9), sharex=True, sharey=True)
@@ -575,7 +573,6 @@ beccs_land = beccs_land.loc[beccs_land['RCP'].isin(rcps)]
 
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
-all_rcps = sorted(ar_land['RCP'].unique())
 
 # plot removal via forestation
 fig, axes = plt.subplots(5, 3, figsize=(8, 9), sharex=True, sharey=True)

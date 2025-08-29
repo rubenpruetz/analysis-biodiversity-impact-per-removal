@@ -241,7 +241,6 @@ area_df = area_df.loc[area_df['RCP'].isin(rcps)]
 
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
-all_rcps = sorted(area_df['RCP'].unique())
 
 fig, axes = plt.subplots(3, 4, figsize=(8, 6), sharex=True, sharey=False)
 sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "Afforestation"'),
@@ -249,7 +248,7 @@ sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "Afforest
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 0])
 sns.lineplot(data=area_df.query('Model == "GLOBIOM" & mitigation_option == "Afforestation"'),
              x='Year', y='alloc_perc',  palette=rcp_pal, hue='RCP',
-             errorbar=('pi', 100), estimator='median', hue_order=all_rcps, legend=True, ax=axes[1, 0])
+             errorbar=('pi', 100), estimator='median', legend=True, ax=axes[1, 0])
 sns.lineplot(data=area_df.query('Model == "IMAGE" & mitigation_option == "Afforestation"'),
              x='Year', y='alloc_perc', palette=rcp_pal, hue='RCP',
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[2, 0])
@@ -355,7 +354,7 @@ beccs_removal = load_and_concat('beccs_removal', paths)
 
 # calculate cumulative removals and avoided warming based on TCRE
 ar_cum = cum_cdr_calc(ar_removal)
-ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000  # x1000 since Gt not Mt
+ar_cum['CoolAR'] = ar_cum['Cum'] * p50_est * 1000  # x1000 for Gt to Mt
 
 beccs_cum = cum_cdr_calc(beccs_removal)
 beccs_cum['CoolBECCS'] = beccs_cum['Cum'] * p50_est * 1000
