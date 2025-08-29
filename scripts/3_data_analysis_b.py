@@ -14,9 +14,10 @@ import cartopy.crs as ccrs
 from cartopy.io.shapereader import Reader
 import cartopy.feature as cfeature
 import cmasher as cmr
-from required_functions import *
 import shapefile
 from pathlib import Path
+from required_functions import *
+
 plt.rcParams.update({'figure.dpi': 600})
 
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')

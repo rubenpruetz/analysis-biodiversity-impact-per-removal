@@ -10,7 +10,6 @@ import os
 import numpy.matlib
 from time import time
 from pathlib import Path
-
 from required_functions import *
 
 path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')

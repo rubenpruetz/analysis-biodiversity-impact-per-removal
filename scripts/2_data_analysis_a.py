@@ -3,9 +3,8 @@
 import pandas as pd
 import rioxarray
 import rasterio as rs
-from required_functions import *
 from pathlib import Path
-plt.rcParams.update({'figure.dpi': 600})
+from required_functions import *
 
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
