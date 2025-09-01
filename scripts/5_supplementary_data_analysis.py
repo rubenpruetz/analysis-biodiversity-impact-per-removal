@@ -144,10 +144,10 @@ warming_estimates = ['median', 'upper']
 
 for estimate in warming_estimates:
     if estimate == 'median':
-        percentile = '50.0'
+        percentile = '50.0th'
         tcre = 'point'
     elif estimate == 'upper':
-        percentile = '83.3'
+        percentile = '83.3rd'
         tcre = 'max'
 
     variable = [f'AR6 climate diagnostics|Surface Temperature (GSAT)|MAGICCv7.5.3|{percentile}th Percentile']
@@ -259,7 +259,7 @@ for estimate in warming_estimates:
     axes[0].set_ylabel('AIM', fontsize=12)
     axes[1].set_ylabel('GLOBIOM', fontsize=12)
     axes[2].set_ylabel('IMAGE', fontsize=12)
-    fig.supylabel(f'Share of remaining refugia lost when excluding CDR [%]\n(based on {percentile}th percentile GSAT and TCRE estimate)',
+    fig.supylabel(f'Share of remaining refugia lost when excluding CDR [%]\n(based on {percentile} percentile GSAT and TCRE estimate)',
                   x=-0.35, va='center', ha='center', fontsize=13)
 
     for ax in axes.flat:
@@ -301,7 +301,7 @@ for estimate in warming_estimates:
         ax.set_ylim([1.1, 3.5])
     axes[0].set_xlabel('No refugia recovery')
     axes[1].set_xlabel('Full refugia recovery')
-    axes[0].set_ylabel(f'Global warming for {percentile}th percentile GSAT and TCRE estimate [°C]\n(model range and SSP1-SSP3 range as shading)', fontsize=11)
+    axes[0].set_ylabel(f'Global warming for {percentile} percentile GSAT and TCRE estimate [°C]\n(model range and SSP1-SSP3 range as shading)', fontsize=11)
     axes[1].set_ylabel('')
 
     fig.text(0.56, 0.945, f'Solid: CO$_2$ removal included\nDashed: CO$_2$ removal excluded',
