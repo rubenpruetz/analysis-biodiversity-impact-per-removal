@@ -67,7 +67,7 @@ area_df = area_df.loc[area_df['RCP'].isin(rcps)]
 rcp_pal = {'19': '#00adcf', '26': '#173c66', '34': '#f79320',
            '45': '#e71d24', '60': '#951b1d', 'Baseline': 'dimgrey'}
 
-fig, axes = plt.subplots(3, 2, figsize=(5, 7), sharex=True, sharey=False)
+fig, axes = plt.subplots(3, 2, figsize=(9, 9), sharex=True, sharey=False)
 sns.lineplot(data=area_df.query('Model == "AIM" & mitigation_option == "BECCS"'),
              x='Year', y='alloc_perc_ag1', palette=rcp_pal, hue='RCP',
              errorbar=('pi', 100), estimator='median', legend=False, ax=axes[0, 0])
@@ -93,7 +93,7 @@ rename_dict = {'19': '1.5 °C', '26': '2 °C', '45': 'Current Policies'}
 
 new_labels = [rename_dict.get(label, label) for label in labels]
 
-axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.02, 2.78), loc='upper left',
+axes[1, 0].legend(handles, new_labels, bbox_to_anchor=(-0.02, 2.7), loc='upper left',
                   ncols=3, columnspacing=1, handletextpad=0.4, handlelength=0.9,
                   fontsize=11)
 
@@ -120,7 +120,7 @@ for ax in axes[:, 1]:
     ax.set_yticklabels([])
 
 fig.supylabel(f'Share of remaining refugia allocated for CDR [%]',
-              x=-0.01, va='center', ha='center', fontsize=13)
+              x=0.04, va='center', ha='center', fontsize=13)
 
 for ax in axes.flat:
     ax.set_xlim(2020, 2100)
