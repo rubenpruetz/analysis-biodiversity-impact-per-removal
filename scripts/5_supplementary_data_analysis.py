@@ -144,13 +144,15 @@ warming_estimates = ['median', 'upper']
 
 for estimate in warming_estimates:
     if estimate == 'median':
+        perc_num = 50.0
         percentile = '50.0th'
         tcre = 'point'
     elif estimate == 'upper':
+        perc_num = 83.3
         percentile = '83.3rd'
         tcre = 'max'
 
-    variable = [f'AR6 climate diagnostics|Surface Temperature (GSAT)|MAGICCv7.5.3|{percentile}th Percentile']
+    variable = [f'AR6 climate diagnostics|Surface Temperature (GSAT)|MAGICCv7.5.3|{perc_num}th Percentile']
 
     pxx_est = float(tcre_df[(tcre_df['Source'] == 'Own trans') &
                             (tcre_df['Estimate'] == tcre)]['Value'].iloc[0])
