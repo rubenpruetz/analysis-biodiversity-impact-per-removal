@@ -129,8 +129,8 @@ def pos_val_summer(arr, squeeze=True):
     arr = np.clip(arr, 0, None)  # set values below zero to 0
     return np.nansum(arr)  # sum only non-NaN values
 
-# function to plot land-per-removal, removal, and land
-def process_data(land_df, removal_df, cdr_option):
+# function to process land-per-removal, removal, and land
+def process_data(land_df, removal_df):
     land_per_removal = pd.merge(land_df, removal_df, on=['Scenario', 'Year'])
     land_per_removal['Land'] = land_per_removal['Land'] * 0.000001  # km2 to Mkm2
     land_per_removal.loc[land_per_removal['Land'] == 0, 'Removal'] = 0  # consistency rule: if land=0, removal=0

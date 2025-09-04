@@ -123,8 +123,8 @@ for model in models:
     beccs_land['Year'] = beccs_land['Year'].apply(pd.to_numeric)
 
     # compute land-per-removal, removal, and land for AR and BECCS
-    lpr_ar = process_data(ar_land, ar_removal, 'AR')
-    lpr_beccs = process_data(beccs_land, beccs_removal, 'BECCS')
+    lpr_ar = process_data(ar_land, ar_removal)
+    lpr_beccs = process_data(beccs_land, beccs_removal)
 
     # impact-per-removal analysis (afforestation)
 
