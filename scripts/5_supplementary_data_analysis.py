@@ -952,7 +952,9 @@ lc_m2 = lc_ar6.copy()
 lc_m2['Value'] = lc_m2['Value'] * 10000000000  # Mha to m2
 
 pdf_tables = {}
+pdf_tables_lu = {} 
 intensities = ['Light', 'Intense']
+
 for intensity in intensities:
     lc_m2_r = lc_m2.replace({'Variable': {'Land Cover|Cropland': f'Cropland_{intensity}',
                                           'Land Cover|Forest': f'Managed_forest_{intensity}',
@@ -963,11 +965,8 @@ for intensity in intensities:
     cf_df = pd.merge(lc_m2_r, cf_combi, left_on='Variable', right_on='habitat',
                      how='inner')
     cf_df['PDF·Year'] = cf_df['Value'] * cf_df[cf_var]
-    cf_df = cf_df.groupby(['Model', 'Scenario', 'Year'], as_index=False)['PDF·Year'].sum()
-    cf_df['PDF·Year'] = cf_df['PDF·Year'].round(3)
-
-    cd_yrs = ['2020', '2050']
-    cf_df = cf_df.loc[cf_df['Year'].isin(cd_yrs)]
+    cf_yrs = ['2020', '2050']
+    cf_df = cf_df.loc[cf_df['Year'].isin(cf_yrs)]
 
     cf_df.replace({'Model': {'AIM/CGE 2.0': 'AIM',
                              'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
@@ -975,12 +974,33 @@ for intensity in intensities:
                              'GCAM 4.2': 'GCAM',
                              'REMIND-MAgPIE 1.5': 'MAgPIE'}}, inplace=True)
 
-    pdf_tables[intensity] = cf_df.pivot(index=['Scenario', 'Year'],
-                                        columns='Model',
-                                        values='PDF·Year').reset_index()
+    cf_df_g = cf_df.groupby(['Model', 'Scenario', 'Year'], as_index=False)['PDF·Year'].sum()
+    cf_df_g['PDF·Year'] = cf_df_g['PDF·Year'].round(3)
+
+    pdf_tables[intensity] = cf_df_g.pivot(index=['Scenario', 'Year'],
+                                          columns='Model',
+                                          values='PDF·Year').reset_index()
+
+    cf_scen = ['SSP1-19', 'SSP2-26', 'SSP3-34']
+    cf_df = cf_df.loc[cf_df['Scenario'].isin(cf_scen)]
+    cf_df = cf_df.loc[cf_df['Year'].isin(['2020'])]
+    cf_df['PDF·Year'] = cf_df['PDF·Year'].round(3)
+
+    cf_df.replace({'Variable': {f'Cropland_{intensity}': 'Cropland',
+                                f'Managed_forest_{intensity}': 'Managed forest',
+                                f'Pasture_{intensity}': 'Pasture',
+                                f'Plantation_{intensity}': 'Plantation',
+                                f'Urban_{intensity}': 'Urban'}}, inplace=True)
+
+    pdf_tables_lu[intensity] = cf_df.pivot(index=['Scenario', 'Variable'],
+                                           columns='Model',
+                                           values='PDF·Year').reset_index()
 
 pdf_df_light = pdf_tables['Light']
 pdf_df_intense = pdf_tables['Intense']
+
+pdf_df_lu_light = pdf_tables_lu['Light']
+pdf_df_lu_intense = pdf_tables_lu['Intense']
 
 # %% explore reduction in CDR land for various sensitivities
 # load area-based criteria for beneficia/harmful effects on biodiversity
