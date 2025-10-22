@@ -981,7 +981,7 @@ for intensity in intensities:
                                           columns='Model',
                                           values='PDF·Year').reset_index()
 
-    cf_scen = ['SSP1-19', 'SSP2-26', 'SSP3-34']
+    cf_scen = ['SSP1-19', 'SSP2-26', 'SSP3-45']
     cf_df = cf_df.loc[cf_df['Scenario'].isin(cf_scen)]
     cf_df = cf_df.loc[cf_df['Year'].isin(['2020'])]
     cf_df['PDF·Year'] = cf_df['PDF·Year'].round(3)
