@@ -950,29 +950,37 @@ cf_combi = cf_combi.groupby(['habitat'], as_index=False)[cf_var].mean()
 # create global scenario lc in m2 based on ar6 data
 lc_m2 = lc_ar6.copy()
 lc_m2['Value'] = lc_m2['Value'] * 10000000000  # Mha to m2
-lc_m2.replace({'Variable': {'Land Cover|Cropland': 'Cropland_Light',
-                            'Land Cover|Forest': 'Managed_forest_Light',
-                            'Land Cover|Pasture': 'Pasture_Light',
-                            'Land Cover|Cropland|Energy Crops': 'Plantation_Light',
-                            'Land Cover|Built-up Area': 'Urban_Light'}}, inplace=True)
 
-cf_df = pd.merge(lc_m2, cf_combi, left_on='Variable', right_on='habitat',
-                 how='inner')
-cf_df['PDF·Year'] = cf_df['Value'] * cf_df[cf_var]
-cf_df = cf_df.groupby(['Model', 'Scenario', 'Year'], as_index=False)['PDF·Year'].sum()
-cf_df['PDF·Year'] = cf_df['PDF·Year'].round(3)
+pdf_tables = {}
+intensities = ['Light', 'Intense']
+for intensity in intensities:
+    lc_m2_r = lc_m2.replace({'Variable': {'Land Cover|Cropland': f'Cropland_{intensity}',
+                                          'Land Cover|Forest': f'Managed_forest_{intensity}',
+                                          'Land Cover|Pasture': f'Pasture_{intensity}',
+                                          'Land Cover|Cropland|Energy Crops': f'Plantation_{intensity}',
+                                          'Land Cover|Built-up Area': f'Urban_{intensity}'}})
 
-cd_yrs = ['2020', '2050']
-cf_df = cf_df.loc[cf_df['Year'].isin(cd_yrs)]
+    cf_df = pd.merge(lc_m2_r, cf_combi, left_on='Variable', right_on='habitat',
+                     how='inner')
+    cf_df['PDF·Year'] = cf_df['Value'] * cf_df[cf_var]
+    cf_df = cf_df.groupby(['Model', 'Scenario', 'Year'], as_index=False)['PDF·Year'].sum()
+    cf_df['PDF·Year'] = cf_df['PDF·Year'].round(3)
 
-cf_df.replace({'Model': {'AIM/CGE 2.0': 'AIM',
-                         'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
-                         'IMAGE 3.0.1': 'IMAGE',
-                         'GCAM 4.2': 'GCAM',
-                         'REMIND-MAgPIE 1.5': 'MAgPIE'}}, inplace=True)
+    cd_yrs = ['2020', '2050']
+    cf_df = cf_df.loc[cf_df['Year'].isin(cd_yrs)]
 
-pdf_table = cf_df.pivot(index=['Scenario', 'Year'], columns='Model',
-                        values='PDF·Year').reset_index()
+    cf_df.replace({'Model': {'AIM/CGE 2.0': 'AIM',
+                             'MESSAGE-GLOBIOM 1.0': 'GLOBIOM',
+                             'IMAGE 3.0.1': 'IMAGE',
+                             'GCAM 4.2': 'GCAM',
+                             'REMIND-MAgPIE 1.5': 'MAgPIE'}}, inplace=True)
+
+    pdf_tables[intensity] = cf_df.pivot(index=['Scenario', 'Year'],
+                                        columns='Model',
+                                        values='PDF·Year').reset_index()
+
+pdf_df_light = pdf_tables['Light']
+pdf_df_intense = pdf_tables['Intense']
 
 # %% explore reduction in CDR land for various sensitivities
 # load area-based criteria for beneficia/harmful effects on biodiversity
