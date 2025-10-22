@@ -981,9 +981,8 @@ for intensity in intensities:
                                           columns='Model',
                                           values='PDF·Year').reset_index()
 
-    cf_scen = ['SSP1-19', 'SSP2-26', 'SSP3-45']
+    cf_scen = ['SSP2-26']
     cf_df = cf_df.loc[cf_df['Scenario'].isin(cf_scen)]
-    cf_df = cf_df.loc[cf_df['Year'].isin(['2020'])]
     cf_df['PDF·Year'] = cf_df['PDF·Year'].round(3)
 
     cf_df.replace({'Variable': {f'Cropland_{intensity}': 'Cropland',
@@ -992,7 +991,7 @@ for intensity in intensities:
                                 f'Plantation_{intensity}': 'Plantation',
                                 f'Urban_{intensity}': 'Urban'}}, inplace=True)
 
-    pdf_tables_lu[intensity] = cf_df.pivot(index=['Scenario', 'Variable'],
+    pdf_tables_lu[intensity] = cf_df.pivot(index=['Year', 'Variable'],
                                            columns='Model',
                                            values='PDF·Year').reset_index()
 
