@@ -62,6 +62,7 @@ for model in models:
     # STEP2: calculate afforestation land per scenario in for 2020-2100
     # filter afforestation related files from lookup table
     landfile_lookup = pd.read_csv(path_all / file_all)
+    landfile_lookup = landfile_lookup[landfile_lookup['scenario'].isin(scenarios)]
     ar_lookup = landfile_lookup[landfile_lookup['mitigation_option'] == 'Afforestation']
     ar_land = pd.DataFrame(columns=['Scenario', 'Year', 'Land'])
 
