@@ -315,6 +315,7 @@ img_ar_n = ax.imshow(data_ar_n, extent=extent_ar_n, transform=ccrs.PlateCarree()
                      origin='upper', cmap=LikHarm, norm=norm_LikHarm)
 
 ax.coastlines(linewidth=0.2)
+ax.set_aspect(1.1)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
 legend_patches = [
@@ -323,14 +324,14 @@ legend_patches = [
     mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
 
-legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
+legend = ax.legend(bbox_to_anchor=(-0.0065, 0.076), handles=legend_patches, ncols=1,
                    loc='lower left', fontsize=9.5, columnspacing=0.8,
                    handletextpad=0.5, borderpad=1.5, frameon=True)
 
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
 
-ax.text(-177, -25, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
+ax.text(-177, -28, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
         fontweight='bold', zorder=10)
 
 ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
@@ -355,6 +356,7 @@ img_be_n = ax.imshow(data_be_n, extent=extent_be_n, transform=ccrs.PlateCarree()
                      origin='upper', cmap=LikHarm, norm=norm_LikHarm)
 
 ax.coastlines(linewidth=0.2)
+ax.set_aspect(1.1)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
 legend_patches = [
@@ -363,14 +365,14 @@ legend_patches = [
     mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
 
-legend = ax.legend(bbox_to_anchor=(-0.01, 0.07), handles=legend_patches, ncols=1,
+legend = ax.legend(bbox_to_anchor=(-0.0065, 0.076), handles=legend_patches, ncols=1,
                    loc='lower left', fontsize=9.5, columnspacing=0.8,
                    handletextpad=0.5, borderpad=1.5, frameon=True)
 
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
 
-ax.text(-177, -25, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
+ax.text(-177, -28, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
         fontweight='bold', zorder=10)
 
 ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',

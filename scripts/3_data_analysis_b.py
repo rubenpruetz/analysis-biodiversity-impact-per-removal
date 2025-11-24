@@ -566,6 +566,7 @@ for model in models:
                                origin='upper', cmap=cmap_be, norm=norm_be, alpha=0.7)
 
             ax.coastlines(linewidth=0.2)
+            ax.set_aspect(1.1)
 
             ax.set_extent([-167, 167, -58, 90])
 
@@ -579,7 +580,7 @@ for model in models:
                               labelpad=1, fontsize=10.5)
             cbar_be.set_label(f'BECCS per grid cell \nfor removals of {removal_lvl} GtCO$_2$ [%]',
                               labelpad=1, fontsize=10.5)
-            plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8.6, x=0.04, y=0.2,
+            plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8.6, x=0.025, y=0.2,
                       ha='left')
             plt.show()
         except Exception as e:
@@ -654,6 +655,7 @@ for model in models:
                                   edgecolor='black', linewidth=0.2)
 
         ax.coastlines(linewidth=0.2)
+        ax.set_aspect(1.1)
         ax.set_extent([-167, 167, -58, 90])
 
         cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
@@ -667,5 +669,5 @@ for model in models:
         cbar.set_label(
             f'Share of national refugia covered by Forestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
             fontsize=15)
-        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.04, y=0.2, ha='left')
+        plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.025, y=0.2, ha='left')
         plt.show()

@@ -426,6 +426,7 @@ for model in models_3:
                                       edgecolor='black', linewidth=0.2)
 
             ax.coastlines(linewidth=0.2)
+            ax.set_aspect(1.1)
             ax.set_extent([-167, 167, -58, 90])
 
             cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
@@ -439,7 +440,7 @@ for model in models_3:
             cbar.set_label(
                 f'Share of national refugia covered by Forestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
                 fontsize=15)
-            plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.04, y=0.2, ha='left')
+            plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.025, y=0.2, ha='left')
             plt.show()
 
 # %% plot supplementary figure on removal per CDR option, scenario and model
@@ -1352,6 +1353,7 @@ for scenario in scenarios:
                                      origin='upper', cmap=LikHarm, norm=norm_LikHarm)
 
                 ax.coastlines(linewidth=0.2)
+                ax.set_aspect(1.1)
                 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
                 legend_patches = [
@@ -1360,14 +1362,14 @@ for scenario in scenarios:
                     mpatches.Patch(color='gainsboro', label=f'Refugia at {warm} °C'),
                     mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
 
-                legend = ax.legend(bbox_to_anchor=(-0.01, 0.11), handles=legend_patches, ncols=1,
+                legend = ax.legend(bbox_to_anchor=(-0.0065, 0.115), handles=legend_patches, ncols=1,
                                    loc='lower left', fontsize=11.5, handlelength=0.7,
                                    handletextpad=0.5, borderpad=0.1, frameon=True)
 
                 legend.get_frame().set_alpha(1)
                 legend.get_frame().set_edgecolor('none')
 
-                ax.text(-177, -19, 'Forestation', transform=ccrs.PlateCarree(),
+                ax.text(-173.5, -23, 'Forestation', transform=ccrs.PlateCarree(),
                         fontsize=11, fontweight='bold', zorder=10)
 
                 ax.text(-30, -58, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
@@ -1394,6 +1396,7 @@ for scenario in scenarios:
                                      origin='upper', cmap=LikHarm, norm=norm_LikHarm)
 
                 ax.coastlines(linewidth=0.2)
+                ax.set_aspect(1.1)
                 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
                 legend_patches = [
@@ -1402,14 +1405,14 @@ for scenario in scenarios:
                     mpatches.Patch(color='gainsboro', label=f'Refugia at {warm} °C'),
                     mpatches.Patch(color='grey', label=f'Hotspot resilient to {warm} °C')]
 
-                legend = ax.legend(bbox_to_anchor=(-0.01, 0.11), handles=legend_patches, ncols=1,
+                legend = ax.legend(bbox_to_anchor=(-0.0065, 0.115), handles=legend_patches, ncols=1,
                                    loc='lower left', fontsize=11.5, handlelength=0.7,
                                    handletextpad=0.5, borderpad=0.1, frameon=True)
 
                 legend.get_frame().set_alpha(1)
                 legend.get_frame().set_edgecolor('none')
 
-                ax.text(-177, -19, 'BECCS', transform=ccrs.PlateCarree(),
+                ax.text(-173.5, -23, 'BECCS', transform=ccrs.PlateCarree(),
                         fontsize=11, fontweight='bold', zorder=10)
 
                 ax.text(-30, -58, f'{scenario} 2100\nMinimum cell share: {thres_cp}%\nModel agreement: {thres_m}-of-5',
