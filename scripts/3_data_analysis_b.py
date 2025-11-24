@@ -546,12 +546,12 @@ for model in models:
                             transform[5] + transform[4] * refug.height, transform[5]]
 
             bounds_ar = [1, 5, 10, 20]
-            norm_ar = mpl.colors.BoundaryNorm(bounds_ar, mpl.cm.Greens.N, extend='max')
-            cmap_ar = cmr.get_sub_cmap('Greens', 0.2, 1)  # specify colormap subrange
+            norm_ar = mpl.colors.BoundaryNorm(bounds_ar, mpl.cm.YlGn.N, extend='max')
+            cmap_ar = cmr.get_sub_cmap('YlGn', 0.2, 1)  # specify colormap subrange
 
             bounds_be = [1, 5, 10, 20]
-            norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Reds.N, extend='max')
-            cmap_be = cmr.get_sub_cmap('Reds', 0.2, 1)  # specify colormap subrange
+            norm_be = mpl.colors.BoundaryNorm(bounds_be, mpl.cm.Oranges.N, extend='max')
+            cmap_be = cmr.get_sub_cmap('Oranges', 0.2, 1)  # specify colormap subrange
 
             fig = plt.figure(figsize=(10, 6.1))
             ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())  # choose projection | LambertAzimuthalEqualArea())
