@@ -341,6 +341,7 @@ for ax in axes.flat:
 plt.subplots_adjust(hspace=0.25)
 plt.subplots_adjust(wspace=0.5)
 sns.despine()
+plt.savefig(path_all / 'fig1ab.pdf', format='pdf', bbox_inches='tight')
 plt.show()
 
 # %% calculate net refugia effect (avoided warming minus land use effect)
@@ -461,6 +462,7 @@ for ax in axes.flat:
 
 plt.subplots_adjust(hspace=0.23)
 sns.despine()
+plt.savefig(path_all / 'fig1c.pdf', format='pdf', bbox_inches='tight')
 plt.show()
 
 # %% maps refugia land impact of CDR across SSP1-3 for a certain warming level
@@ -582,6 +584,8 @@ for model in models:
                               labelpad=1, fontsize=10.5)
             plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8.6, x=0.025, y=0.2,
                       ha='left')
+            plt.savefig(path_all / f'fig2_{model}_{ssp}-{rcp_lvl}.pdf', format='pdf',
+                        bbox_inches='tight', dpi=600)
             plt.show()
         except Exception as e:
             print(f'Error processing {ssp}: {e}')
@@ -670,4 +674,6 @@ for model in models:
             f'Share of national refugia covered by Forestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
             fontsize=15)
         plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.025, y=0.2, ha='left')
+        plt.savefig(path_all / f'fig2_{model}_{ssp}-{rcp_lvl}_national.pdf', format='pdf',
+                    bbox_inches='tight')
         plt.show()

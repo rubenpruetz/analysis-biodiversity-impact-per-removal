@@ -171,6 +171,7 @@ for ax in axes.flat:
 
 plt.subplots_adjust(wspace=0.1)
 sns.despine()
+plt.savefig(path_all / 'fig4.pdf', format='pdf', bbox_inches='tight')
 plt.show()
 
 # %% plot hotspot areas of concern in terms of model agreement
@@ -324,19 +325,19 @@ legend_patches = [
     mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
 
-legend = ax.legend(bbox_to_anchor=(-0.0065, 0.076), handles=legend_patches, ncols=1,
+legend = ax.legend(bbox_to_anchor=(-0.005, 0.086), handles=legend_patches, ncols=1,
                    loc='lower left', fontsize=9.5, columnspacing=0.8,
-                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                   handletextpad=0.5, borderpad=1.2, frameon=True)
 
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
 
-ax.text(-177, -28, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
+ax.text(-178.3, -28, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
         fontweight='bold', zorder=10)
 
 ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
         transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
-
+plt.savefig(path_all / 'fig3a.pdf', format='pdf', bbox_inches='tight')
 plt.show()
 
 # plot agreement for BECCS
@@ -365,17 +366,17 @@ legend_patches = [
     mpatches.Patch(color='gainsboro', label='Refugia at 1.8 °C'),
     mpatches.Patch(color='grey', label='Hotspot resilient to 1.8 °C')]
 
-legend = ax.legend(bbox_to_anchor=(-0.0065, 0.076), handles=legend_patches, ncols=1,
+legend = ax.legend(bbox_to_anchor=(-0.005, 0.086), handles=legend_patches, ncols=1,
                    loc='lower left', fontsize=9.5, columnspacing=0.8,
-                   handletextpad=0.5, borderpad=1.5, frameon=True)
+                   handletextpad=0.5, borderpad=1.2, frameon=True)
 
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
 
-ax.text(-177, -28, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
+ax.text(-178.3, -28, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
         fontweight='bold', zorder=10)
 
 ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
         transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
-
+plt.savefig(path_all / 'fig3b.pdf', format='pdf', bbox_inches='tight')
 plt.show()
