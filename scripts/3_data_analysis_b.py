@@ -572,7 +572,6 @@ for model in models:
 
             ax.coastlines(linewidth=0.2)
             ax.set_aspect(1.1)
-
             ax.set_extent([-167, 167, -58, 90])
 
             cbar_ar = plt.colorbar(img_ar, ax=ax, orientation='horizontal', aspect=9, pad=0.16)
@@ -635,10 +634,10 @@ for model in models:
 
         land_area_calculation(path_uea, 'bio1.8_bin.tif', 'bio1.8_bin_km2.tif')
         intersect_src = rs.open(path_uea / 'bio1.8_bin_km2.tif')
-        df_bio15 = admin_bound_calculator('all_ssps', admin_sf, intersect_src)
-        df_bio15 = df_bio15.rename(columns={'km2': 'bio_km2'})
+        df_bio18 = admin_bound_calculator('all_ssps', admin_sf, intersect_src)
+        df_bio18 = df_bio18.rename(columns={'km2': 'bio_km2'})
 
-        wab_out = pd.merge(df_options, df_bio15[['iso3', 'bio_km2']], on='iso3', how='inner')
+        wab_out = pd.merge(df_options, df_bio18[['iso3', 'bio_km2']], on='iso3', how='inner')
         wab_out['affected_bio_share'] = wab_out['km2'] / wab_out['bio_km2'] * 100
 
         wab_cum = wab_out.groupby(['iso3', 'bio_km2'], as_index=False)['km2'].sum()
