@@ -25,7 +25,7 @@ path_magpie = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversi
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
 path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
-
+fig_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/analysis_biodiversity_impact_per_removal/paper_plots/ncc_figs')
 # %% estimate land CDR conflict with SDG 15.5 based on different criteria
 hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif',
                                    masked=True)
@@ -171,7 +171,7 @@ for ax in axes.flat:
 
 plt.subplots_adjust(wspace=0.1)
 sns.despine()
-plt.savefig(path_all / 'fig4.pdf', format='pdf', bbox_inches='tight')
+plt.savefig(fig_path / 'fig4.pdf', format='pdf', bbox_inches='tight')
 plt.show()
 
 # %% plot hotspot areas of concern in terms of model agreement
@@ -299,10 +299,10 @@ norm_PotBen = BoundaryNorm([0, 1], PotBen.N)
 LikHarm = ListedColormap([(0, 0, 0, 0), 'crimson'])
 norm_LikHarm = BoundaryNorm([0, 1], LikHarm.N)
 
-# plot agreement for forestation
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
+fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 12),
+                         subplot_kw={'projection': ccrs.Robinson()})
 
+ax = axes[0]  # plot agreement for forestation
 img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
                    origin='upper', cmap=color_g1, norm=norm_g1)
 
@@ -319,6 +319,11 @@ ax.coastlines(linewidth=0.2)
 ax.set_aspect(1.1)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
+ax.text(-178.3, -28, 'Forestation', transform=ccrs.PlateCarree(),
+        fontsize=11, fontweight='bold', zorder=10)
+ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
+        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
+
 legend_patches = [
     mpatches.Patch(color='orange', label='Potentially beneficial'),
     mpatches.Patch(color='crimson', label='Likely harmful'),
@@ -332,18 +337,7 @@ legend = ax.legend(bbox_to_anchor=(-0.005, 0.086), handles=legend_patches, ncols
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
 
-ax.text(-178.3, -28, 'Forestation', transform=ccrs.PlateCarree(), fontsize=11,
-        fontweight='bold', zorder=10)
-
-ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
-        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
-plt.savefig(path_all / 'fig3a.pdf', format='pdf', bbox_inches='tight')
-plt.show()
-
-# plot agreement for BECCS
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
-
+ax = axes[1]  # plot agreement for BECCS
 img_re = ax.imshow(data_refug, extent=extent_refug, transform=ccrs.PlateCarree(),
                    origin='upper', cmap=color_g1, norm=norm_g1)
 
@@ -360,6 +354,11 @@ ax.coastlines(linewidth=0.2)
 ax.set_aspect(1.1)
 ax.add_feature(cfeature.BORDERS, linewidth=0.2)
 
+ax.text(-178.3, -28, 'BECCS', transform=ccrs.PlateCarree(),
+        fontsize=11, fontweight='bold', zorder=10)
+ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
+        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
+
 legend_patches = [
     mpatches.Patch(color='orange', label='Potentially beneficial'),
     mpatches.Patch(color='crimson', label='Likely harmful'),
@@ -373,10 +372,10 @@ legend = ax.legend(bbox_to_anchor=(-0.005, 0.086), handles=legend_patches, ncols
 legend.get_frame().set_alpha(1)
 legend.get_frame().set_edgecolor('none')
 
-ax.text(-178.3, -28, 'BECCS', transform=ccrs.PlateCarree(), fontsize=11,
-        fontweight='bold', zorder=10)
+fig.text(0.15, 0.84, 'a', fontsize=18, fontweight='bold')
+fig.text(0.15, 0.46, 'b', fontsize=18, fontweight='bold')
 
-ax.text(-30, -58, 'SSP2-26 2100\nMinimum cell share: 10%\nModel agreement: 2-of-5',
-        transform=ccrs.PlateCarree(), fontsize=10, zorder=10)
-plt.savefig(path_all / 'fig3b.pdf', format='pdf', bbox_inches='tight')
+plt.subplots_adjust(hspace=-0.05)
+plt.savefig(fig_path / 'fig3.pdf', format='pdf', bbox_inches='tight')
 plt.show()
+
