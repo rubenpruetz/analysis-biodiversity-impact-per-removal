@@ -14,6 +14,8 @@ from pathlib import Path
 from required_functions import *
 
 plt.rcParams.update({'figure.dpi': 600})
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
 
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
@@ -26,6 +28,7 @@ path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiver
 path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
 path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
 fig_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/analysis_biodiversity_impact_per_removal/paper_plots/ncc_figs')
+
 # %% estimate land CDR conflict with SDG 15.5 based on different criteria
 hotspots = rioxarray.open_rasterio(path_hotspots / 'ar6_hotspots_10arcmin.tif',
                                    masked=True)

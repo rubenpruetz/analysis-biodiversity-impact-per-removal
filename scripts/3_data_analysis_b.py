@@ -19,6 +19,8 @@ from pathlib import Path
 from required_functions import *
 
 plt.rcParams.update({'figure.dpi': 600})
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
 
 path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
 path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
@@ -29,6 +31,7 @@ path_ag = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/u
 path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
 path_hotspots = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/ar6_hotspots')
 sf_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/wab')
+fig_path = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/analysis_biodiversity_impact_per_removal/paper_plots/ncc_figs')
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
 lookup_mi_cdr_df = pd.read_csv(path_all / 'lookup_table_ar_beccs_files_all_models.csv')
@@ -341,7 +344,7 @@ for ax in axes.flat:
 plt.subplots_adjust(hspace=0.25)
 plt.subplots_adjust(wspace=0.5)
 sns.despine()
-plt.savefig(path_all / 'fig1ab.pdf', format='pdf', bbox_inches='tight')
+plt.savefig(fig_path / 'fig1ab.pdf', format='pdf', bbox_inches='tight')
 plt.show()
 
 # %% calculate net refugia effect (avoided warming minus land use effect)
@@ -462,7 +465,7 @@ for ax in axes.flat:
 
 plt.subplots_adjust(hspace=0.23)
 sns.despine()
-plt.savefig(path_all / 'fig1c.pdf', format='pdf', bbox_inches='tight')
+plt.savefig(fig_path / 'fig1c.pdf', format='pdf', bbox_inches='tight')
 plt.show()
 
 # %% maps refugia land impact of CDR across SSP1-3 for a certain warming level
@@ -584,7 +587,8 @@ for model in models:
                               labelpad=1, fontsize=10.5)
             plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=8.6, x=0.025, y=0.2,
                       ha='left')
-            plt.savefig(path_all / f'fig2_{model}_{ssp}-{rcp_lvl}.pdf', format='pdf',
+
+            plt.savefig(fig_path / f'fig2_{model}_{ssp}-{rcp_lvl}.pdf', format='pdf',
                         bbox_inches='tight', dpi=600)
             plt.show()
         except Exception as e:
@@ -674,6 +678,6 @@ for model in models:
             f'Share of national refugia covered by Forestation \nand BECCS for removals of {cdr_sum} GtCO$_2$ [%]',
             fontsize=15)
         plt.title(f'{model} {ssp}-{rcp_lvl}', fontsize=12.5, x=0.025, y=0.2, ha='left')
-        plt.savefig(path_all / f'fig2_{model}_{ssp}-{rcp_lvl}_national.pdf', format='pdf',
+        plt.savefig(fig_path / f'fig2_{model}_{ssp}-{rcp_lvl}_national.pdf', format='pdf',
                     bbox_inches='tight')
         plt.show()
