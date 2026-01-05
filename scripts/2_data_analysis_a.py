@@ -6,11 +6,11 @@ import rasterio as rs
 from pathlib import Path
 from required_functions import *
 
-path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
-path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
-path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
-path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
-path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
+path_ar6_data = Path('/Users/rpruetz/Documents/work/datasets')
+path_globiom = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/globiom_maps')
+path_aim = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/aim_maps')
+path_image = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/image_maps')
+path_all = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity')
 file_all = 'lookup_table_ar_bioenergy_files_all_models.csv'
 
 ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')

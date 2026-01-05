@@ -12,15 +12,15 @@ from time import time
 from pathlib import Path
 from required_functions import *
 
-path_aim = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/aim_maps')
-path_gcam = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/gcam_maps')
-path_globiom = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/globiom_maps')
-path_image = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/image_maps')
-path_magpie = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/magpie_maps')
-path_uea = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
-path_ref_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/reforest_potential')
-path_beccs_pot = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
-path_all = Path('/Users/rpruetz/Documents/phd/primary/analyses/cdr_biodiversity')
+path_aim = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/aim_maps')
+path_gcam = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/gcam_maps')
+path_globiom = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/globiom_maps')
+path_image = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/image_maps')
+path_magpie = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/magpie_maps')
+path_uea = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/uea_maps/UEA_20km')
+path_ref_pot = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/reforest_potential')
+path_beccs_pot = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity/Braun_et_al_2024_PB_BECCS/Results/1_source_data_figures/Fig2')
+path_all = Path('/Users/rpruetz/Documents/work/primary/analyses/cdr_biodiversity')
 
 # load lookup table containing nc file information
 lookup_resample = pd.read_csv(
@@ -455,7 +455,7 @@ for model in models:
         path = path_magpie
         model_setup = 'REMIND-MAgPIE 1.5'
 
-    path_ar6_data = Path('/Users/rpruetz/Documents/phd/datasets')
+    path_ar6_data = Path('/Users/rpruetz/Documents/work/datasets')
     ar6_db = pd.read_csv(path_ar6_data / 'AR6_Scenarios_Database_World_v1.1.csv')
     scenarios = ['SSP1-Baseline', 'SSP1-19', 'SSP1-26', 'SSP1-34', 'SSP1-45',
                  'SSP2-Baseline', 'SSP2-19', 'SSP2-26', 'SSP2-34', 'SSP2-45',
